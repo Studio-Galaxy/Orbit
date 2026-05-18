@@ -38,11 +38,24 @@ export function Sidebar() {
   useEffect(() => {
     setMounted(true);
     const supabase = createClient();
+    
+    // Initial fetch
     supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) {
-        setUser(data.user);
+      if (data?.user) setUser(data.user);
+    });
+
+    // Listen to changes (e.g. login/logout in other tabs, or initial load hydration)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        setUser(null);
       }
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {

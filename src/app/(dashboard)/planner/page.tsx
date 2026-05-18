@@ -2,60 +2,84 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 type Task = {
   id: string;
   title: string;
-  completed: boolean;
+  status: "todo" | "in_progress" | "completed";
   priority: "high" | "medium" | "low";
-  due?: string;
+  due_date?: string;
 };
 
 export default function PlannerPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  const supabase = createClient();
 
   useEffect(() => {
-    const saved = localStorage.getItem("orbit-planner-tasks");
-    if (saved) {
-      try {
-        setTasks(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load tasks");
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        setUser(data.user);
+        loadTasks(data.user.id);
       }
-    } else {
-      // Default tasks
-      setTasks([
-        { id: "1", title: "Review Calculus Chapter 4 Exercises", completed: false, priority: "high", due: "Today" },
-        { id: "2", title: "Read Machine Learning PDF - Section 2", completed: true, priority: "medium" },
-        { id: "3", title: "Draft Physics Lab Report", completed: false, priority: "medium", due: "Tomorrow" },
-        { id: "4", title: "Quiz preparation for Quantum Mechanics", completed: false, priority: "low" },
-      ]);
-    }
-    setIsLoaded(true);
+    });
   }, []);
 
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("orbit-planner-tasks", JSON.stringify(tasks));
+  async function loadTasks(userId: string) {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('planner_tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (data) {
+      setTasks(data);
     }
-  }, [tasks, isLoaded]);
+    setIsLoaded(true);
+    setIsLoading(false);
+  }
 
-
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const toggleTask = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'completed' ? 'todo' : 'completed';
+    setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus } : t));
+    
+    await supabase
+      .from('planner_tasks')
+      .update({ status: newStatus })
+      .eq('id', id);
   };
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.trim()) return;
-    setTasks([{ id: Date.now().toString(), title: newTask, completed: false, priority: "medium" }, ...tasks]);
+    if (!newTask.trim() || !user) return;
+    
+    const title = newTask;
     setNewTask("");
+    
+    const { data, error } = await supabase
+      .from('planner_tasks')
+      .insert({
+        user_id: user.id,
+        title: title,
+        priority: 'medium',
+        status: 'todo'
+      })
+      .select()
+      .single();
+      
+    if (data) {
+      setTasks([data, ...tasks]);
+    }
   };
 
-  const completedCount = tasks.filter(t => t.completed).length;
+  const completedCount = tasks.filter(t => t.status === 'completed').length;
   const progress = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
 
   return (
@@ -116,8 +140,13 @@ export default function PlannerPage() {
 
         {/* Task List */}
         <div className="space-y-2">
+          {isLoading ? (
+            <div className="flex justify-center p-8 mt-4"><Loader2 size={24} className="animate-spin text-neutral-500" /></div>
+          ) : (
           <AnimatePresence>
-            {tasks.map((task) => (
+            {tasks.map((task) => {
+              const isCompleted = task.status === 'completed';
+              return (
               <motion.div 
                 key={task.id}
                 layout
@@ -125,29 +154,29 @@ export default function PlannerPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className={`group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
-                  task.completed 
+                  isCompleted 
                     ? "bg-neutral-900/20 border-transparent opacity-60" 
                     : "bg-neutral-900/40 border-neutral-800 hover:border-neutral-700"
                 }`}
-                onClick={() => toggleTask(task.id)}
+                onClick={() => toggleTask(task.id, task.status)}
               >
                 <div className="flex items-center gap-4">
-                  <button className={`flex-shrink-0 transition-colors ${task.completed ? "text-white" : "text-neutral-600 group-hover:text-neutral-400"}`}>
-                    {task.completed ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+                  <button className={`flex-shrink-0 transition-colors ${isCompleted ? "text-white" : "text-neutral-600 group-hover:text-neutral-400"}`}>
+                    {isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
                   </button>
-                  <span className={`text-sm ${task.completed ? "text-neutral-500 line-through" : "text-neutral-200"}`}>
+                  <span className={`text-sm ${isCompleted ? "text-neutral-500 line-through" : "text-neutral-200"}`}>
                     {task.title}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {task.due && (
+                  {task.due_date && (
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold px-2 py-1 bg-neutral-800/50 rounded-md text-neutral-500">
                       <Clock size={10} />
-                      {task.due}
+                      {new Date(task.due_date).toLocaleDateString()}
                     </div>
                   )}
-                  {!task.completed && (
+                  {!isCompleted && (
                     <div className={`w-2 h-2 rounded-full ${
                       task.priority === 'high' ? 'bg-red-500' :
                       task.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
@@ -155,8 +184,10 @@ export default function PlannerPage() {
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
+          )}
         </div>
       </div>
     </div>

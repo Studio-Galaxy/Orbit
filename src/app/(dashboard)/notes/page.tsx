@@ -1,15 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Sparkles, Folder, ArchiveX, X } from "lucide-react";
+import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { createClient } from "@/utils/supabase/client";
 
 export default function NotesPage() {
   const [activeFolder, setActiveFolder] = useState("All Notes");
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiActionTitle, setAiActionTitle] = useState("");
+  
+  const [notes, setNotes] = useState<any[]>([]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [activeNoteContent, setActiveNoteContent] = useState<any>("");
+  const [activeNoteTitle, setActiveNoteTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        setUser(data.user);
+        loadNotes(data.user.id);
+      }
+    });
+  }, []);
+
+  async function loadNotes(userId: string) {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+    
+    if (data) {
+      setNotes(data);
+      if (data.length > 0 && !activeNoteId) {
+        setActiveNote(data[0]);
+      }
+    }
+    setIsLoading(false);
+  }
+
+  const setActiveNote = (note: any) => {
+    setActiveNoteId(note.id);
+    setActiveNoteTitle(note.title);
+    setActiveNoteContent(note.content);
+  };
+
+  const handleCreateNote = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        user_id: user.id,
+        title: 'Untitled Note',
+        content: {}
+      })
+      .select()
+      .single();
+    
+    if (data) {
+      setNotes([data, ...notes]);
+      setActiveNote(data);
+    }
+    setIsSaving(false);
+  };
+
+  const debouncedSave = useCallback(
+    async (id: string, title: string, content: any) => {
+      if (!user) return;
+      setIsSaving(true);
+      await supabase
+        .from('notes')
+        .update({ title, content, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, title, content } : n));
+      setIsSaving(false);
+    },
+    [user]
+  );
+
+  const handleTitleChange = (title: string) => {
+    setActiveNoteTitle(title);
+    if (activeNoteId) {
+      debouncedSave(activeNoteId, title, activeNoteContent);
+    }
+  };
+
+  const handleContentChange = (content: any) => {
+    setActiveNoteContent(content);
+    if (activeNoteId) {
+      debouncedSave(activeNoteId, activeNoteTitle, content);
+    }
+  };
 
   const handleAiAction = (action: string) => {
     setAiActionTitle(action);
@@ -33,34 +125,39 @@ export default function NotesPage() {
           </button>
         </div>
         
-        <div className="space-y-1 mb-8">
-          {["All Notes", "Calculus", "Machine Learning"].map(folder => (
-            <button 
-              key={folder}
-              onClick={() => setActiveFolder(folder)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
-                activeFolder === folder 
-                  ? "text-white bg-neutral-900/80 font-medium" 
-                  : "text-neutral-400 hover:text-white hover:bg-neutral-900/30"
-              }`}
-            >
-              <Folder size={14} className={activeFolder === folder ? "text-indigo-400" : "text-neutral-500"} /> 
-              {folder}
-            </button>
-          ))}
-          <button 
-            onClick={() => setActiveFolder("Trash")}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors mt-4 ${
-              activeFolder === "Trash"
-                ? "text-white bg-neutral-900/80 font-medium"
-                : "text-neutral-400 hover:text-white hover:bg-neutral-900/30"
-            }`}
-          >
-            <ArchiveX size={14} className={activeFolder === "Trash" ? "text-red-400" : "text-neutral-500"} /> Trash
+        <div className="flex items-center justify-between mb-4 mt-auto border-t border-neutral-900 pt-4">
+          <h3 className="text-sm font-medium text-neutral-400">Your Notes</h3>
+          <button onClick={handleCreateNote} className="text-neutral-500 hover:text-white transition-colors">
+            <Plus size={14} />
           </button>
         </div>
+        <div className="space-y-1 mb-8 overflow-y-auto flex-1">
+          {isLoading ? (
+            <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-neutral-500" /></div>
+          ) : notes.length === 0 ? (
+            <div className="text-xs text-neutral-500 text-center py-4">No notes yet</div>
+          ) : notes.map(note => (
+            <button 
+              key={note.id}
+              onClick={() => setActiveNote(note)}
+              className={`w-full flex flex-col items-start px-3 py-2 text-sm rounded-md transition-colors text-left ${
+                activeNoteId === note.id 
+                  ? "bg-neutral-900/80 border border-neutral-800" 
+                  : "hover:bg-neutral-900/30 border border-transparent"
+              }`}
+            >
+              <div className={`font-medium truncate w-full ${activeNoteId === note.id ? "text-white" : "text-neutral-300"}`}>
+                {note.title || "Untitled Note"}
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-neutral-500 mt-1">
+                <Clock size={10} />
+                {new Date(note.updated_at || note.created_at).toLocaleDateString()}
+              </div>
+            </button>
+          ))}
+        </div>
 
-        <div className="flex items-center justify-between mb-4 mt-auto border-t border-neutral-900 pt-4">
+        <div className="flex items-center justify-between mb-4 border-t border-neutral-900 pt-4">
           <h3 className="text-sm font-medium text-neutral-400">AI Actions</h3>
         </div>
         <div className="space-y-2">
@@ -81,7 +178,23 @@ export default function NotesPage() {
 
       {/* Editor Area */}
       <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6">
-        <TiptapEditor />
+        <div className="absolute top-4 right-8 z-10 flex items-center gap-2 text-xs text-neutral-500">
+          {isSaving ? <><Loader2 size={12} className="animate-spin" /> Saving...</> : "Saved to cloud"}
+        </div>
+        {activeNoteId ? (
+          <TiptapEditor 
+            key={activeNoteId}
+            initialContent={activeNoteContent} 
+            initialTitle={activeNoteTitle}
+            onTitleChange={handleTitleChange}
+            onUpdate={handleContentChange}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-neutral-500 h-full">
+            <FileText size={48} className="mb-4 opacity-20" />
+            <p>Select a note or create a new one to start writing</p>
+          </div>
+        )}
       </div>
 
       {/* AI Processing Modal */}

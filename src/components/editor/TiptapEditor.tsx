@@ -6,7 +6,14 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Bold, Italic, Strikethrough, Code, List, ListOrdered, Quote } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export function TiptapEditor() {
+interface TiptapEditorProps {
+  initialContent?: any;
+  initialTitle?: string;
+  onUpdate?: (content: any) => void;
+  onTitleChange?: (title: string) => void;
+}
+
+export function TiptapEditor({ initialContent = '', initialTitle = '', onUpdate, onTitleChange }: TiptapEditorProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -21,7 +28,12 @@ export function TiptapEditor() {
         emptyEditorClass: 'is-editor-empty',
       }),
     ],
-    content: '',
+    content: initialContent,
+    onUpdate: ({ editor }) => {
+      if (onUpdate) {
+        onUpdate(editor.getJSON());
+      }
+    },
     editorProps: {
       attributes: {
         class: 'prose prose-invert prose-neutral max-w-none focus:outline-none min-h-[400px]',
@@ -29,6 +41,12 @@ export function TiptapEditor() {
     },
     immediatelyRender: false,
   });
+
+  useEffect(() => {
+    if (editor && initialContent && editor.getJSON() !== initialContent) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [initialContent, editor]);
 
   if (!isMounted) return null;
   if (!editor) return null;
@@ -84,6 +102,8 @@ export function TiptapEditor() {
       <div className="w-full max-w-4xl px-8 py-12 lg:px-16 lg:py-16">
         <input 
           type="text" 
+          value={initialTitle}
+          onChange={(e) => onTitleChange?.(e.target.value)}
           placeholder="Untitled Note" 
           className="w-full text-4xl lg:text-5xl font-bold bg-transparent border-none outline-none text-white placeholder-neutral-700 mb-8 tracking-tight"
         />

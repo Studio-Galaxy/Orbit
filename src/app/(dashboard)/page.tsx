@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, FileText, FileBox, Calendar, ArrowRight, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 const QUICK_ACTIONS = [
   { name: "New Note", icon: FileText, href: "/notes", color: "text-blue-400", bg: "bg-blue-400/10" },
@@ -23,6 +24,24 @@ const RECENT_ITEMS = [
 export default function DashboardPage() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [greeting, setGreeting] = useState("Hello");
+  const [hour, setHour] = useState(12);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setUser(data.user);
+    });
+
+    const currentHour = new Date().getHours();
+    setHour(currentHour);
+    if (currentHour < 12) setGreeting("Good morning");
+    else if (currentHour < 18) setGreeting("Good afternoon");
+    else setGreeting("Good evening");
+  }, []);
+
+  const userName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6 md:p-8 lg:p-12 relative">
@@ -33,10 +52,10 @@ export default function DashboardPage() {
         className="mb-12"
       >
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">
-          Good evening, John
+          {greeting}, {userName}
         </h1>
         <p className="text-neutral-400 text-lg">
-          What would you like to focus on tonight?
+          What would you like to focus on {hour >= 18 ? "tonight" : "today"}?
         </p>
       </motion.div>
 
