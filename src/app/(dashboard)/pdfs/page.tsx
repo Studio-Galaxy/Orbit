@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UploadCloud, FileBox, FileText, ChevronRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function PdfManagerPage() {
   const [isDragging, setIsDragging] = useState(false);
@@ -146,11 +147,17 @@ export default function PdfManagerPage() {
                 </p>
                 
                 <div className="w-full space-y-3 mb-auto">
-                  <div className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group">
+                  <div 
+                    onClick={() => toast.success("Opening flashcards for this document...")}
+                    className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"
+                  >
                     <span className="text-sm text-neutral-300">View Flashcards (24)</span>
                     <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group">
+                  <div 
+                    onClick={() => toast.info("Generating practice quiz... please wait.")}
+                    className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"
+                  >
                     <span className="text-sm text-neutral-300">Take Practice Quiz</span>
                     <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                   </div>

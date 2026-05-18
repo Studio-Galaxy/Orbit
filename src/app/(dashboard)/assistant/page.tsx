@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Send, User, RotateCcw } from "lucide-react";
+import { Sparkles, Send, User, RotateCcw, Trash2 } from "lucide-react";
 
 type Message = {
   id: string;
@@ -12,6 +12,10 @@ type Message = {
 
 export default function AssistantPage() {
   const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -20,21 +24,53 @@ export default function AssistantPage() {
     }
   ]);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("orbit-chat-messages");
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (e) {}
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("orbit-chat-messages", JSON.stringify(messages));
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isLoaded]);
+
+  const clearChat = () => {
+    setMessages([{ id: Date.now().toString(), role: "assistant", content: "Chat history cleared. How can I help you today?" }]);
+  };
+
+  const MOCK_RESPONSES = [
+    "That's a great question. Based on your notes, the partial derivative of a function with multiple variables is computed by differentiating with respect to one variable while holding the others constant. Would you like a practice problem?",
+    "I've checked the Machine Learning Handout. Unsupervised learning refers to algorithms that draw inferences from datasets without labeled responses. Examples include clustering and principal component analysis.",
+    "Interesting thought! That actually connects perfectly with chapter 3 of your Physics syllabus regarding angular momentum.",
+    "Let me simplify that for you. Essentially, the 'Chain Rule' in calculus just tells us how to differentiate composite functions. You multiply the derivative of the outer function by the derivative of the inner function.",
+    "Here is a quick flashcard for you: \n\nQ: What is a perceptron? \nA: A single-layer neural network used for binary classification."
+  ];
+
   const handleSend = () => {
     if (!input.trim()) return;
     
     const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: input };
     setMessages(prev => [...prev, newUserMsg]);
     setInput("");
+    setIsTyping(true);
 
     // Simulate AI response
     setTimeout(() => {
+      setIsTyping(false);
+      const randomResponse = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
       setMessages(prev => [
         ...prev, 
         { 
           id: (Date.now() + 1).toString(), 
           role: "assistant", 
-          content: "That's a great question. Based on your notes, the partial derivative of a function with multiple variables is computed by differentiating with respect to one variable while holding the others constant. Would you like a practice problem?" 
+          content: randomResponse
         }
       ]);
     }, 1500);
@@ -43,11 +79,18 @@ export default function AssistantPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-full max-w-4xl mx-auto pt-6 px-4 pb-0 items-center justify-end relative">
       {messages.length === 1 && (
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center opacity-50 pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center opacity-50 pointer-events-none z-0">
           <Sparkles size={64} className="text-neutral-800 mb-6" />
           <h1 className="text-2xl font-semibold text-neutral-400">Orbit Study Assistant</h1>
         </div>
       )}
+      
+      <button 
+        onClick={clearChat}
+        className="absolute top-4 right-4 z-40 p-2 text-neutral-500 hover:bg-neutral-900 rounded-lg transition-colors flex items-center gap-2 text-xs font-medium"
+      >
+        <Trash2 size={14} /> Clear Chat
+      </button>
 
       {/* Chat Messages */}
       <div className="flex-1 w-full overflow-y-auto px-2 md:px-6 w-full space-y-8 pb-10 custom-scrollbar z-10 flex flex-col justify-end">
@@ -71,13 +114,33 @@ export default function AssistantPage() {
                 )}
               </div>
               <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} pt-1`}>
-                <div className={`text-sm leading-relaxed ${msg.role === 'user' ? 'text-white' : 'text-neutral-300'}`}>
+                <div className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-neutral-300'}`}>
                   {msg.content}
                 </div>
               </div>
             </div>
           </motion.div>
         ))}
+        
+        {isTyping && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex w-full justify-start"
+          >
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <Sparkles size={14} className="animate-pulse" />
+              </div>
+              <div className="flex items-center gap-1 h-8 px-2">
+                <span className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                <span className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                <span className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce"></span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        <div ref={messagesEndRef} className="h-4" />
       </div>
 
       {/* Input Area */}

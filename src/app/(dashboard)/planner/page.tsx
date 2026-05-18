@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Clock, CheckCircle2, Circle } from "lucide-react";
 
@@ -13,14 +13,36 @@ type Task = {
 };
 
 export default function PlannerPage() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", title: "Review Calculus Chapter 4 Exercises", completed: false, priority: "high", due: "Today" },
-    { id: "2", title: "Read Machine Learning PDF - Section 2", completed: true, priority: "medium" },
-    { id: "3", title: "Draft Physics Lab Report", completed: false, priority: "medium", due: "Tomorrow" },
-    { id: "4", title: "Quiz preparation for Quantum Mechanics", completed: false, priority: "low" },
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("orbit-planner-tasks");
+    if (saved) {
+      try {
+        setTasks(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load tasks");
+      }
+    } else {
+      // Default tasks
+      setTasks([
+        { id: "1", title: "Review Calculus Chapter 4 Exercises", completed: false, priority: "high", due: "Today" },
+        { id: "2", title: "Read Machine Learning PDF - Section 2", completed: true, priority: "medium" },
+        { id: "3", title: "Draft Physics Lab Report", completed: false, priority: "medium", due: "Tomorrow" },
+        { id: "4", title: "Quiz preparation for Quantum Mechanics", completed: false, priority: "low" },
+      ]);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("orbit-planner-tasks", JSON.stringify(tasks));
+    }
+  }, [tasks, isLoaded]);
+
 
   const toggleTask = (id: string) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));

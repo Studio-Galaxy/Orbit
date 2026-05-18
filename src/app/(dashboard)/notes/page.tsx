@@ -1,10 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
-import { motion } from "framer-motion";
-import { FileText, Sparkles, Folder, ArchiveX } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FileText, Sparkles, Folder, ArchiveX, X } from "lucide-react";
+import { toast } from "sonner";
 
 export default function NotesPage() {
+  const [activeFolder, setActiveFolder] = useState("All Notes");
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiActionTitle, setAiActionTitle] = useState("");
+
+  const handleAiAction = (action: string) => {
+    setAiActionTitle(action);
+    setIsAiModalOpen(true);
+    setTimeout(() => {
+      toast.success(`${action} generation complete!`);
+    }, 2000);
+  };
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full">
       {/* Notes Sidebar */}
@@ -21,17 +34,29 @@ export default function NotesPage() {
         </div>
         
         <div className="space-y-1 mb-8">
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-white bg-neutral-900/50 rounded-md">
-            <Folder size={14} className="text-neutral-500" /> All Notes
-          </button>
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-neutral-900/30 rounded-md transition-colors">
-            <Folder size={14} className="text-neutral-500" /> Calculus
-          </button>
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-neutral-900/30 rounded-md transition-colors">
-            <Folder size={14} className="text-neutral-500" /> Machine Learning
-          </button>
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-neutral-900/30 rounded-md transition-colors">
-            <ArchiveX size={14} className="text-neutral-500" /> Trash
+          {["All Notes", "Calculus", "Machine Learning"].map(folder => (
+            <button 
+              key={folder}
+              onClick={() => setActiveFolder(folder)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
+                activeFolder === folder 
+                  ? "text-white bg-neutral-900/80 font-medium" 
+                  : "text-neutral-400 hover:text-white hover:bg-neutral-900/30"
+              }`}
+            >
+              <Folder size={14} className={activeFolder === folder ? "text-indigo-400" : "text-neutral-500"} /> 
+              {folder}
+            </button>
+          ))}
+          <button 
+            onClick={() => setActiveFolder("Trash")}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors mt-4 ${
+              activeFolder === "Trash"
+                ? "text-white bg-neutral-900/80 font-medium"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-900/30"
+            }`}
+          >
+            <ArchiveX size={14} className={activeFolder === "Trash" ? "text-red-400" : "text-neutral-500"} /> Trash
           </button>
         </div>
 
@@ -39,11 +64,17 @@ export default function NotesPage() {
           <h3 className="text-sm font-medium text-neutral-400">AI Actions</h3>
         </div>
         <div className="space-y-2">
-          <button className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20 transition-colors">
-            <Sparkles size={14} /> Flashcards
+          <button 
+            onClick={() => handleAiAction("Flashcards")}
+            className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20 transition-colors"
+          >
+            <Sparkles size={14} /> Generate Flashcards
           </button>
-          <button className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg border border-emerald-500/20 transition-colors">
-            <Sparkles size={14} /> Summarize
+          <button 
+            onClick={() => handleAiAction("Summary")}
+            className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg border border-emerald-500/20 transition-colors"
+          >
+            <Sparkles size={14} /> Summarize Note
           </button>
         </div>
       </motion.div>
@@ -52,6 +83,55 @@ export default function NotesPage() {
       <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6">
         <TiptapEditor />
       </div>
+
+      {/* AI Processing Modal */}
+      <AnimatePresence>
+        {isAiModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setIsAiModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+              
+              <button 
+                onClick={() => setIsAiModalOpen(false)}
+                className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="w-16 h-16 rounded-full bg-neutral-800/50 flex items-center justify-center mb-6 relative">
+                <div className="absolute inset-0 border-2 border-neutral-700 rounded-full border-t-indigo-500 animate-spin" />
+                <Sparkles size={24} className="text-white animate-pulse" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-white mb-2">Generating {aiActionTitle}...</h3>
+              <p className="text-sm text-neutral-400 mb-6">
+                Our AI models are analyzing your notes to extract the most important concepts. This usually takes a few seconds.
+              </p>
+              
+              <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 2, ease: "linear" }}
+                  className="h-full bg-indigo-500"
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Sparkles, FileText, FileBox, Calendar, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, FileText, FileBox, Calendar, ArrowRight, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const QUICK_ACTIONS = [
   { name: "New Note", icon: FileText, href: "/notes", color: "text-blue-400", bg: "bg-blue-400/10" },
@@ -19,8 +21,11 @@ const RECENT_ITEMS = [
 ];
 
 export default function DashboardPage() {
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const router = useRouter();
+
   return (
-    <div className="w-full max-w-6xl mx-auto p-6 md:p-8 lg:p-12">
+    <div className="w-full max-w-6xl mx-auto p-6 md:p-8 lg:p-12 relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,15 +72,16 @@ export default function DashboardPage() {
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold tracking-tight text-white">Recent Activity</h2>
-            <button className="text-sm text-neutral-400 hover:text-white flex items-center gap-1 transition-colors">
+            <Link href="/notes" className="text-sm text-neutral-400 hover:text-white flex items-center gap-1 transition-colors">
               View all <ArrowRight size={14} />
-            </button>
+            </Link>
           </div>
           
           <div className="space-y-3">
             {RECENT_ITEMS.map((item, i) => (
               <div 
                 key={i}
+                onClick={() => router.push(item.type === 'pdf' ? '/pdfs' : '/notes')}
                 className="flex items-center justify-between p-4 bg-neutral-900/30 border border-neutral-800/50 rounded-xl hover:bg-neutral-900/60 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-4">
@@ -114,12 +120,71 @@ export default function DashboardPage() {
             <p className="text-neutral-300 text-sm leading-relaxed mb-6">
               "Based on your recent notes, you might want to review the chain rule in Calculus before tomorrow's quiz. I've prepared a quick 5-question flashcard set."
             </p>
-            <button className="w-full py-2.5 px-4 bg-white text-black text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors">
+            <button 
+              onClick={() => setIsReviewModalOpen(true)}
+              className="w-full py-2.5 px-4 bg-white text-black text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors"
+            >
               Start Quick Review
             </button>
           </div>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {isReviewModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setIsReviewModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl flex flex-col"
+            >
+              <button 
+                onClick={() => setIsReviewModalOpen(false)}
+                className="absolute top-6 right-6 text-neutral-500 hover:text-white transition-colors p-2 bg-neutral-800 rounded-full"
+              >
+                <X size={16} />
+              </button>
+              
+              <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-6">
+                <Sparkles size={24} />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-2">Calculus Review</h3>
+              <p className="text-neutral-400 mb-8">
+                Based on your notes, here is the first concept to review:
+              </p>
+              
+              <div className="p-6 bg-neutral-800/50 border border-neutral-700/50 rounded-2xl mb-8 flex flex-col items-center text-center justify-center min-h-[160px]">
+                <h4 className="text-lg font-medium text-neutral-200 mb-2">What is the Chain Rule?</h4>
+                <p className="text-sm text-neutral-400">Click to reveal answer...</p>
+              </div>
+
+              <div className="flex items-center justify-between mt-auto">
+                <button 
+                  onClick={() => setIsReviewModalOpen(false)}
+                  className="px-6 py-2.5 rounded-lg text-sm text-neutral-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => setIsReviewModalOpen(false)}
+                  className="px-6 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors"
+                >
+                  Mark as Complete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

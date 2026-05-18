@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { logout } from "@/app/auth/actions";
+import { createClient } from "@/utils/supabase/client";
 import { 
   LayoutDashboard, 
   FileText, 
@@ -27,12 +30,29 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     setMounted(true);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        setUser(data.user);
+      }
+    });
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Successfully logged out");
+    } catch {
+      toast.error("Failed to log out");
+    }
+  };
 
   return (
     <>
@@ -90,13 +110,20 @@ export function Sidebar() {
             </nav>
 
             <div className="p-4 mt-auto border-t border-neutral-900">
-              <button className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-900/50 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-white">
-                  JS
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-900/50 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-white uppercase overflow-hidden">
+                  {user?.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"
+                  )}
                 </div>
-                <div className="flex flex-col items-start flex-1 text-left">
-                  <span className="text-white text-xs truncate">John Student</span>
-                  <span className="text-[10px] text-neutral-500 truncate">Pro Plan</span>
+                <div className="flex flex-col items-start flex-1 text-left overflow-hidden">
+                  <span className="text-white text-xs truncate w-full">{user?.user_metadata?.full_name || user?.email || "User"}</span>
+                  <span className="text-[10px] text-neutral-500 truncate">Free Plan</span>
                 </div>
                 <LogOut size={16} className="text-neutral-500" />
               </button>
