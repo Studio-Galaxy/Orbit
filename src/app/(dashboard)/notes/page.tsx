@@ -494,15 +494,17 @@ export default function NotesPage() {
 
       {/* Editor/Previewer Area */}
       <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6 min-w-0">
-        <div className="absolute top-4 left-6 z-10 hidden lg:block">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 text-neutral-500 hover:text-white hover:bg-neutral-900 rounded-lg transition-colors flex items-center justify-center border border-transparent hover:border-neutral-800"
-            title="Toggle Sidebar"
-          >
-            {isSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
-          </button>
-        </div>
+        {!(activeCategory === "vault" && activeVaultFile) && (
+          <div className="absolute top-4 left-6 z-10 hidden lg:block">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 text-neutral-500 hover:text-white hover:bg-neutral-900 rounded-lg transition-colors flex items-center justify-center border border-transparent hover:border-neutral-800"
+              title="Toggle Sidebar"
+            >
+              {isSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+            </button>
+          </div>
+        )}
         
         {activeCategory === "note" && (
           <div className="absolute top-4 right-8 z-10 flex items-center gap-4 text-xs text-neutral-500">
@@ -549,6 +551,15 @@ export default function NotesPage() {
                <div className={`flex flex-col bg-neutral-900 border-neutral-800 shadow-2xl transition-all ${isDocFullscreen ? "fixed inset-x-4 inset-y-4 z-[101] rounded-2xl border" : "relative mt-8 lg:mt-0 flex-1 w-full h-full rounded-xl border overflow-hidden"}`}>
                  <div className="absolute top-0 inset-x-0 h-14 bg-neutral-950 border-b border-neutral-800 flex items-center justify-between px-6 z-20 shadow-sm rounded-t-xl">
                    <div className="font-medium text-white flex items-center gap-2">
+                     <div className="hidden lg:block mr-2 border-r border-neutral-800 pr-4">
+                       <button
+                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                         className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded-md transition-colors"
+                         title="Toggle Sidebar"
+                       >
+                         {isSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+                       </button>
+                     </div>
                      <FileText size={16} className="text-indigo-400" />
                      {activeVaultFile.filename}
                    </div>
