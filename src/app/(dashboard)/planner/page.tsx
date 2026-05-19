@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2 } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 type Task = {
@@ -17,6 +17,8 @@ export default function PlannerPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -168,29 +170,64 @@ export default function PlannerPage() {
 
       <div className="flex flex-col gap-8">
         {/* Input */}
-        <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row gap-3 w-full">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-              <Plus size={18} className="text-neutral-500" />
-            </div>
-            <input 
-              type="text" 
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              className="w-full bg-neutral-900/60 border border-neutral-800 focus:border-neutral-700 outline-none text-white text-sm py-4 pl-12 pr-4 rounded-2xl transition-all shadow-sm"
-              placeholder="Add a new task... (press Enter)"
-            />
-          </div>
+        <form onSubmit={handleAddTask} className="w-full bg-neutral-900/40 border border-neutral-800 rounded-2xl overflow-hidden focus-within:border-neutral-600 transition-colors shadow-sm mb-4">
           <input 
-            type="datetime-local"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="bg-neutral-900/60 border border-neutral-800 focus:border-neutral-700 outline-none text-neutral-400 text-xs py-4 px-4 rounded-2xl transition-all shadow-sm sm:max-w-[200px] cursor-pointer"
-            style={{ colorScheme: 'dark' }}
+            type="text" 
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            className="w-full bg-transparent border-none outline-none text-white text-base py-5 px-6 placeholder-neutral-500"
+            placeholder="What needs to be done?"
           />
-          <button type="submit" className="hidden sm:block bg-white text-black font-semibold text-sm px-6 py-4 rounded-2xl hover:bg-neutral-200 transition-colors">
-            Add
-          </button>
+          
+          <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/60 border-t border-neutral-800/80">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input 
+                  ref={dateInputRef}
+                  type="datetime-local"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  style={{ colorScheme: 'dark' }}
+                  onClick={(e) => {
+                    // Fallback to showPicker if the click doesn't trigger the native UI
+                    try {
+                      if ('showPicker' in HTMLInputElement.prototype) {
+                        e.preventDefault();
+                        dateInputRef.current?.showPicker();
+                      }
+                    } catch (err) {}
+                  }}
+                />
+                
+                {dueDate ? (
+                  <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-medium px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 relative z-0">
+                    <Clock size={12} />
+                    {new Date(dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium px-3 py-2 rounded-lg border border-transparent hover:bg-neutral-800 transition-colors relative z-0">
+                    <Calendar size={14} />
+                    Set Date & Time
+                  </div>
+                )}
+              </div>
+              
+              {dueDate && (
+                 <button type="button" onClick={() => setDueDate("")} className="p-2 text-neutral-500 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors relative z-20 tooltip" title="Clear Date">
+                   <X size={14} />
+                 </button>
+              )}
+            </div>
+            
+            <button 
+              type="submit" 
+              disabled={!newTask.trim()}
+              className="bg-white text-black font-semibold text-xs px-5 py-2.5 rounded-xl hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <Plus size={14} /> Add Task
+            </button>
+          </div>
         </form>
 
         {/* Task List */}
