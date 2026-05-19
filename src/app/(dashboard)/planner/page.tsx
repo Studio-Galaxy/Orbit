@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X, Flag } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 type Task = {
@@ -17,6 +17,7 @@ export default function PlannerPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const dateInputRef = useRef<HTMLInputElement>(null);
   
   const [isLoaded, setIsLoaded] = useState(false);
@@ -87,16 +88,18 @@ export default function PlannerPage() {
     
     const title = newTask;
     const dateToSave = dueDate || null;
+    const priorityToSave = priority;
     
     setNewTask("");
     setDueDate("");
+    setPriority("medium");
     
     const { data, error } = await supabase
       .from('planner_tasks')
       .insert({
         user_id: user.id,
         title: title,
-        priority: 'medium',
+        priority: priorityToSave,
         status: 'todo',
         due_date: dateToSave
       })
@@ -218,6 +221,19 @@ export default function PlannerPage() {
                    <X size={14} />
                  </button>
               )}
+              
+              <button 
+                type="button" 
+                onClick={() => setPriority(priority === 'low' ? 'medium' : priority === 'medium' ? 'high' : 'low')} 
+                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors ${
+                  priority === 'high' ? "text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500/20" :
+                  priority === 'medium' ? "text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20" :
+                  "text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                }`}
+              >
+                <Flag size={12} className={priority === 'high' ? 'fill-red-400/50' : priority === 'medium' ? 'fill-amber-400/50' : 'fill-blue-400/50'} />
+                {priority === 'high' ? 'Important' : priority === 'medium' ? 'Medium' : 'Low'}
+              </button>
             </div>
             
             <button 
