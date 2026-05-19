@@ -29,10 +29,12 @@ export default function DashboardPage() {
   const [hour, setHour] = useState(12);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setUser(data.user);
-    });
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setUser(data.user);
+      })
+      .catch((err) => console.error("Auth fetch error:", err));
 
     const currentHour = new Date().getHours();
     setHour(currentHour);

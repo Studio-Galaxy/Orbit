@@ -29,21 +29,22 @@ export default function PlannerPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error) {
-        console.error("Auth error:", error.message);
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setUser(data.user);
+          loadTasks(data.user.id);
+        } else {
+          setIsLoaded(true);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Auth fetch error:", err);
         setIsLoaded(true);
         setIsLoading(false);
-        return;
-      }
-      if (data?.user) {
-        setUser(data.user);
-        loadTasks(data.user.id);
-      } else {
-        setIsLoaded(true);
-        setIsLoading(false);
-      }
-    });
+      });
   }, []);
 
   async function loadTasks(userId: string) {

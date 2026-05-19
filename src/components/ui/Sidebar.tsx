@@ -40,9 +40,12 @@ export function Sidebar() {
     const supabase = createClient();
     
     // Initial fetch
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setUser(data.user);
-    });
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setUser(data.user);
+      })
+      .catch((err) => console.error("Auth fetch error:", err));
 
     // Listen to changes (e.g. login/logout in other tabs, or initial load hydration)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {

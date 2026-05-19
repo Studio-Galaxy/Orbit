@@ -13,12 +13,17 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        setUser(data.user);
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error("Auth fetch error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchUser();
   }, []);

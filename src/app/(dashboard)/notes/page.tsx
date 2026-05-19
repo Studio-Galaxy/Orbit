@@ -24,19 +24,20 @@ export default function NotesPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error) {
-        console.error("Auth error:", error.message);
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setUser(data.user);
+          loadNotes(data.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Auth fetch error:", err);
         setIsLoading(false);
-        return;
-      }
-      if (data?.user) {
-        setUser(data.user);
-        loadNotes(data.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
+      });
   }, []);
 
   async function loadNotes(userId: string) {
