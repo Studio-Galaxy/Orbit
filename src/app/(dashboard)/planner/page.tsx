@@ -23,10 +23,19 @@ export default function PlannerPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error) {
+        console.error("Auth error:", error.message);
+        setIsLoaded(true);
+        setIsLoading(false);
+        return;
+      }
       if (data?.user) {
         setUser(data.user);
         loadTasks(data.user.id);
+      } else {
+        setIsLoaded(true);
+        setIsLoading(false);
       }
     });
   }, []);
@@ -39,7 +48,10 @@ export default function PlannerPage() {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
-    if (data) {
+    if (error) {
+      console.error("Error loading tasks:", error.message);
+      // fallback to empty if db error
+    } else if (data) {
       setTasks(data);
     }
     setIsLoaded(true);
@@ -50,15 +62,25 @@ export default function PlannerPage() {
     const newStatus = currentStatus === 'completed' ? 'todo' : 'completed';
     setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus } : t));
     
-    await supabase
+    const { error } = await supabase
       .from('planner_tasks')
       .update({ status: newStatus })
       .eq('id', id);
+    
+    if (error) {
+      console.error("Error updating task:", error.message);
+      // revert on error
+      setTasks(tasks.map(t => t.id === id ? { ...t, status: currentStatus as any } : t));
+    }
   };
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.trim() || !user) return;
+    if (!newTask.trim()) return;
+    if (!user) {
+      alert("You must be logged in to add a task.");
+      return;
+    }
     
     const title = newTask;
     setNewTask("");
@@ -74,7 +96,9 @@ export default function PlannerPage() {
       .select()
       .single();
       
-    if (data) {
+    if (error) {
+      console.error("Error adding task:", error.message);
+    } else if (data) {
       setTasks([data, ...tasks]);
     }
   };

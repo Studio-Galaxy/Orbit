@@ -23,10 +23,17 @@ export default function NotesPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error) {
+        console.error("Auth error:", error.message);
+        setIsLoading(false);
+        return;
+      }
       if (data?.user) {
         setUser(data.user);
         loadNotes(data.user.id);
+      } else {
+        setIsLoading(false);
       }
     });
   }, []);
@@ -39,7 +46,10 @@ export default function NotesPage() {
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
     
-    if (data) {
+    if (error) {
+      console.error("Error loading notes:", error.message);
+      toast.error("Failed to load notes. Please ensure the database tables are created.");
+    } else if (data) {
       setNotes(data);
       if (data.length > 0 && !activeNoteId) {
         setActiveNote(data[0]);
@@ -55,19 +65,25 @@ export default function NotesPage() {
   };
 
   const handleCreateNote = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error("You must be logged in to create a note.");
+      return;
+    }
     setIsSaving(true);
     const { data, error } = await supabase
       .from('notes')
       .insert({
         user_id: user.id,
         title: 'Untitled Note',
-        content: {}
+        content: ''
       })
       .select()
       .single();
     
-    if (data) {
+    if (error) {
+      console.error("Error creating note:", error.message);
+      toast.error("Failed to create note.");
+    } else if (data) {
       setNotes([data, ...notes]);
       setActiveNote(data);
     }
@@ -78,12 +94,17 @@ export default function NotesPage() {
     async (id: string, title: string, content: any) => {
       if (!user) return;
       setIsSaving(true);
-      await supabase
+      const { error } = await supabase
         .from('notes')
         .update({ title, content, updated_at: new Date().toISOString() })
         .eq('id', id);
       
-      setNotes(prev => prev.map(n => n.id === id ? { ...n, title, content } : n));
+      if (error) {
+        console.error("Error saving note:", error.message);
+        toast.error("Failed to save note.");
+      } else {
+        setNotes(prev => prev.map(n => n.id === id ? { ...n, title, content } : n));
+      }
       setIsSaving(false);
     },
     [user]
