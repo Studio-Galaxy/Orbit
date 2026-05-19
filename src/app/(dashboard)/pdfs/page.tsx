@@ -15,8 +15,9 @@ export default function PdfManagerPage() {
   const [summary, setSummary] = useState("");
   const [flashcards, setFlashcards] = useState<any[]>([]);
   const [quiz, setQuiz] = useState<any[]>([]);
+  const [viva, setViva] = useState<any[]>([]);
 
-  const [activeView, setActiveView] = useState<'summary' | 'flashcards' | 'quiz'>('summary');
+  const [activeView, setActiveView] = useState<'summary' | 'flashcards' | 'quiz' | 'viva'>('summary');
   
   // Flashcard states
   const [currentFlashcard, setCurrentFlashcard] = useState(0);
@@ -53,6 +54,7 @@ export default function PdfManagerPage() {
     setQuotaHit(false);
     setCurrentFlashcard(0);
     setShowAnswer(false);
+    setShowAnswer(false);
     setCurrentQuiz(0);
     setScore(0);
     setQuizFinished(false);
@@ -81,6 +83,7 @@ export default function PdfManagerPage() {
       setSummary(data.summary || "No summary provided.");
       setFlashcards(data.flashcards || []);
       setQuiz(data.quiz || []);
+      setViva(data.viva || []);
       
       setIsProcessing(false);
       setIsDone(true);
@@ -280,6 +283,16 @@ export default function PdfManagerPage() {
                       <span className="text-sm text-neutral-300">Take Practice Quiz ({quiz.length})</span>
                       <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                     </div>
+                    <div 
+                      onClick={() => {
+                        if (viva.length === 0) return toast.error("No viva questions found.");
+                        setActiveView('viva');
+                      }}
+                      className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"
+                    >
+                      <span className="text-sm text-neutral-300">Practice Viva ({viva.length})</span>
+                      <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
+                    </div>
                   </div>
                 </motion.div>
               ) : activeView === 'flashcards' ? (
@@ -436,6 +449,85 @@ export default function PdfManagerPage() {
                       </div>
                     </div>
                   )}
+                </motion.div>
+              ) : activeView === 'viva' ? (
+                <motion.div
+                  key="viva"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="w-full h-full flex flex-col"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <button 
+                      onClick={() => setActiveView('summary')}
+                      className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium"
+                    >
+                      <ArrowLeft size={16} /> Back
+                    </button>
+                    <span className="text-xs text-neutral-500 font-medium tracking-widest uppercase">
+                      Viva {currentFlashcard + 1} of {viva.length}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 bg-black/40 border border-neutral-800/80 rounded-3xl p-10 flex flex-col items-center justify-center relative overflow-hidden mb-6 shadow-2xl">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 bg-rose-500/10 blur-[100px] rounded-full pointer-events-none" />
+                    
+                    <h3 className="text-xl font-medium text-white mb-8 leading-relaxed max-w-2xl text-center z-10 w-full px-4">
+                      {viva[currentFlashcard]?.question}
+                    </h3>
+                    
+                    <div className="min-h-[120px] w-full flex flex-col items-center justify-start z-10">
+                      <AnimatePresence mode="wait">
+                        {!showAnswer ? (
+                          <motion.button
+                            key="show-btn"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={() => setShowAnswer(true)}
+                            className="px-8 py-3 bg-neutral-800 text-neutral-200 rounded-full text-sm font-medium hover:bg-neutral-700 hover:text-white transition-all shadow-lg border border-neutral-700/50"
+                          >
+                            View Expected Answer
+                          </motion.button>
+                        ) : (
+                          <motion.div
+                            key="answer-text"
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className="w-full max-w-2xl p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl shadow-inner scrollbar-hide overflow-y-auto max-h-[250px]"
+                          >
+                            <p className="text-lg text-rose-100/90 leading-relaxed text-center">
+                              {viva[currentFlashcard]?.answer}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-auto">
+                    <button 
+                      onClick={() => {
+                        setShowAnswer(false);
+                        setTimeout(() => setCurrentFlashcard(prev => Math.max(0, prev - 1)), 200);
+                      }}
+                      disabled={currentFlashcard === 0}
+                      className="px-6 py-2.5 bg-neutral-800/80 text-sm font-medium rounded-xl disabled:opacity-30 hover:bg-neutral-700 transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowAnswer(false);
+                        setTimeout(() => setCurrentFlashcard(prev => Math.min(viva.length - 1, prev + 1)), 200);
+                      }}
+                      disabled={currentFlashcard === viva.length - 1}
+                      className="px-6 py-2.5 bg-white text-black text-sm font-medium rounded-xl disabled:opacity-30 hover:bg-neutral-200 transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </motion.div>
               ) : null}
             </AnimatePresence>
