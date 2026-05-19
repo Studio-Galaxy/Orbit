@@ -45,35 +45,48 @@ export default function AssistantPage() {
     setMessages([{ id: Date.now().toString(), role: "assistant", content: "Chat history cleared. How can I help you today?" }]);
   };
 
-  const MOCK_RESPONSES = [
-    "That's a great question. Based on your notes, the partial derivative of a function with multiple variables is computed by differentiating with respect to one variable while holding the others constant. Would you like a practice problem?",
-    "I've checked the Machine Learning Handout. Unsupervised learning refers to algorithms that draw inferences from datasets without labeled responses. Examples include clustering and principal component analysis.",
-    "Interesting thought! That actually connects perfectly with chapter 3 of your Physics syllabus regarding angular momentum.",
-    "Let me simplify that for you. Essentially, the 'Chain Rule' in calculus just tells us how to differentiate composite functions. You multiply the derivative of the outer function by the derivative of the inner function.",
-    "Here is a quick flashcard for you: \n\nQ: What is a perceptron? \nA: A single-layer neural network used for binary classification."
-  ];
-
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     
     const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: input };
-    setMessages(prev => [...prev, newUserMsg]);
+    const newMessages = [...messages, newUserMsg];
+    setMessages(newMessages);
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      setIsTyping(false);
-      const randomResponse = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages })
+      });
+      const data = await res.json();
+      
+      if (data.reply) {
+        setMessages(prev => [
+          ...prev, 
+          { 
+            id: (Date.now() + 1).toString(), 
+            role: "assistant", 
+            content: data.reply
+          }
+        ]);
+      } else {
+        throw new Error(data.error || "No reply returned");
+      }
+    } catch (error: any) {
+      console.error("Chat error:", error);
       setMessages(prev => [
-        ...prev, 
-        { 
-          id: (Date.now() + 1).toString(), 
-          role: "assistant", 
-          content: randomResponse
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Sorry, I ran into an error trying to process that."
         }
       ]);
-    }, 1500);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
