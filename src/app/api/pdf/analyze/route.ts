@@ -27,12 +27,20 @@ export async function POST(req: NextRequest) {
     const prompt = `You are an expert study assistant. Analyze the provided document and output a JSON object containing:
 1. "summary": A concise and comprehensive summary of the document (2-3 sentences max).
 2. "flashcards": An array of objects, where each object has a "question" (string) and an "answer" (string). Generate exactly 5 highly relevant flashcards based on the material.
+3. "quiz": An array of objects, where each object has a "question" (string), "options" (an array of exactly 4 strings), and "answer" (string, must exactly match one of the options). Generate exactly 5 quiz questions.
 
 IMPORTANT: Your entire response must be valid JSON matching the structure:
 {
   "summary": "...",
   "flashcards": [
     { "question": "...", "answer": "..." }
+  ],
+  "quiz": [
+    {
+      "question": "...",
+      "options": ["A", "B", "C", "D"],
+      "answer": "A"
+    }
   ]
 }
 
@@ -66,6 +74,15 @@ Make sure you do not wrap the JSON in markdown blocks (like \`\`\`json). Just re
     
   } catch (err: any) {
     console.error("PDF Analysis Error:", err);
+    // If we hit a 429 Too Many Requests or quota error
+    if (err?.message?.includes("429") || err?.message?.includes("quota") || err?.status === 429) {
+      console.log("API rate limit/quota reached.");
+      return NextResponse.json({ 
+        error: "Usage limit reached. Please upgrade to a Premium Plan to continue analyzing documents.",
+        code: "QUOTA_EXCEEDED"
+      }, { status: 429 });
+    }
+
     return NextResponse.json({ error: err.message || "An error occurred during analysis" }, { status: 500 });
   }
 }
