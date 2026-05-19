@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 type Task = {
@@ -16,6 +16,7 @@ type Task = {
 export default function PlannerPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -83,7 +84,10 @@ export default function PlannerPage() {
     }
     
     const title = newTask;
+    const dateToSave = dueDate || null;
+    
     setNewTask("");
+    setDueDate("");
     
     const { data, error } = await supabase
       .from('planner_tasks')
@@ -91,7 +95,8 @@ export default function PlannerPage() {
         user_id: user.id,
         title: title,
         priority: 'medium',
-        status: 'todo'
+        status: 'todo',
+        due_date: dateToSave
       })
       .select()
       .single();
@@ -100,6 +105,20 @@ export default function PlannerPage() {
       console.error("Error adding task:", error.message);
     } else if (data) {
       setTasks([data, ...tasks]);
+    }
+  };
+
+  const deleteTask = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    
+    const previousTasks = [...tasks];
+    setTasks(tasks.filter(t => t.id !== id));
+    
+    const { error } = await supabase.from('planner_tasks').delete().eq('id', id);
+    if (error) {
+      console.error("Error deleting task:", error.message);
+      setTasks(previousTasks);
     }
   };
 
@@ -149,17 +168,29 @@ export default function PlannerPage() {
 
       <div className="flex flex-col gap-8">
         {/* Input */}
-        <form onSubmit={handleAddTask} className="relative w-full">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <Plus size={18} className="text-neutral-500" />
+        <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row gap-3 w-full">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <Plus size={18} className="text-neutral-500" />
+            </div>
+            <input 
+              type="text" 
+              value={newTask}
+              onChange={(e) => setNewTask(e.target.value)}
+              className="w-full bg-neutral-900/60 border border-neutral-800 focus:border-neutral-700 outline-none text-white text-sm py-4 pl-12 pr-4 rounded-2xl transition-all shadow-sm"
+              placeholder="Add a new task... (press Enter)"
+            />
           </div>
           <input 
-            type="text" 
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            className="w-full bg-neutral-900/60 border border-neutral-800 focus:border-neutral-700 outline-none text-white text-sm py-4 pl-12 pr-4 rounded-2xl transition-all shadow-sm"
-            placeholder="Add a new task... (press Enter)"
+            type="datetime-local"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="bg-neutral-900/60 border border-neutral-800 focus:border-neutral-700 outline-none text-neutral-400 text-xs py-4 px-4 rounded-2xl transition-all shadow-sm sm:max-w-[200px] cursor-pointer"
+            style={{ colorScheme: 'dark' }}
           />
+          <button type="submit" className="hidden sm:block bg-white text-black font-semibold text-sm px-6 py-4 rounded-2xl hover:bg-neutral-200 transition-colors">
+            Add
+          </button>
         </form>
 
         {/* Task List */}
@@ -197,15 +228,21 @@ export default function PlannerPage() {
                   {task.due_date && (
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold px-2 py-1 bg-neutral-800/50 rounded-md text-neutral-500">
                       <Clock size={10} />
-                      {new Date(task.due_date).toLocaleDateString()}
+                      {new Date(task.due_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                     </div>
                   )}
                   {!isCompleted && (
-                    <div className={`w-2 h-2 rounded-full ${
+                    <div className={`w-2 h-2 rounded-full hidden sm:block ${
                       task.priority === 'high' ? 'bg-red-500' :
                       task.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
                     }`} />
                   )}
+                  <button 
+                    onClick={(e) => deleteTask(task.id, e)}
+                    className="ml-2 text-neutral-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </motion.div>
               );

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2 } from "lucide-react";
+import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 
@@ -19,6 +19,7 @@ export default function NotesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -61,7 +62,16 @@ export default function NotesPage() {
   const setActiveNote = (note: any) => {
     setActiveNoteId(note.id);
     setActiveNoteTitle(note.title);
-    setActiveNoteContent(note.content);
+    
+    let parsedContent = note.content;
+    if (typeof parsedContent === 'string' && parsedContent.startsWith('{')) {
+      try {
+        parsedContent = JSON.parse(parsedContent);
+      } catch (e) {
+        // failed to parse, use as-is
+      }
+    }
+    setActiveNoteContent(parsedContent);
   };
 
   const handleCreateNote = async () => {
@@ -109,6 +119,37 @@ export default function NotesPage() {
     },
     [user]
   );
+
+  const confirmDeleteNote = (id: string) => {
+    setNoteToDelete(id);
+  };
+
+  const executeDeleteNote = async () => {
+    if (!user || !noteToDelete) return;
+    
+    setIsSaving(true);
+    const { error } = await supabase.from('notes').delete().eq('id', noteToDelete);
+    
+    if (error) {
+      console.error("Error deleting note:", error.message);
+      toast.error("Failed to delete note.");
+    } else {
+      toast.success("Note deleted.");
+      const updatedNotes = notes.filter(n => n.id !== noteToDelete);
+      setNotes(updatedNotes);
+      if (activeNoteId === noteToDelete) {
+        if (updatedNotes.length > 0) {
+          setActiveNote(updatedNotes[0]);
+        } else {
+          setActiveNoteId(null);
+          setActiveNoteTitle("");
+          setActiveNoteContent("");
+        }
+      }
+    }
+    setNoteToDelete(null);
+    setIsSaving(false);
+  };
 
   const handleTitleChange = (title: string) => {
     setActiveNoteTitle(title);
@@ -199,8 +240,19 @@ export default function NotesPage() {
 
       {/* Editor Area */}
       <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6">
-        <div className="absolute top-4 right-8 z-10 flex items-center gap-2 text-xs text-neutral-500">
-          {isSaving ? <><Loader2 size={12} className="animate-spin" /> Saving...</> : "Saved to cloud"}
+        <div className="absolute top-4 right-8 z-10 flex items-center gap-4 text-xs text-neutral-500">
+          {activeNoteId && (
+            <button 
+              onClick={() => confirmDeleteNote(activeNoteId)}
+              className="text-neutral-500 hover:text-red-400 transition-colors flex items-center gap-1"
+            >
+              <Trash2 size={12} />
+              Delete
+            </button>
+          )}
+          <div className="flex items-center gap-2">
+            {isSaving ? <><Loader2 size={12} className="animate-spin" /> Saving...</> : "Saved to cloud"}
+          </div>
         </div>
         {activeNoteId ? (
           <TiptapEditor 
@@ -261,6 +313,51 @@ export default function NotesPage() {
                   transition={{ duration: 2, ease: "linear" }}
                   className="h-full bg-indigo-500"
                 />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {noteToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setNoteToDelete(null)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center overflow-hidden"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4 text-red-500">
+                <Trash2 size={24} />
+              </div>
+              
+              <h3 className="text-xl font-bold text-white mb-2">Delete Note?</h3>
+              <p className="text-sm text-neutral-400 mb-6">
+                Are you sure you want to delete this note? This action cannot be undone.
+              </p>
+              
+              <div className="flex w-full gap-3">
+                <button 
+                  onClick={() => setNoteToDelete(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-neutral-700 text-sm font-medium hover:bg-neutral-800 transition-colors text-white"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={executeDeleteNote}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+                >
+                  Delete
+                </button>
               </div>
             </motion.div>
           </div>
