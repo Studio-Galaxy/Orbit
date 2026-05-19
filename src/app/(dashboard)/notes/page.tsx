@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2, Trash2 } from "lucide-react";
+import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2, Trash2, PanelLeftClose, PanelLeft, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 
 export default function NotesPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeFolder, setActiveFolder] = useState("All Notes");
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiActionTitle, setAiActionTitle] = useState("");
@@ -174,73 +175,91 @@ export default function NotesPage() {
     }, 2000);
   };
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full">
+    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden">
       {/* Notes Sidebar */}
-      <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="w-64 border-r border-neutral-900 bg-black/50 p-4 hidden lg:flex flex-col h-full overscroll-contain overflow-y-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-neutral-400">Folders</h3>
-          <button className="text-neutral-500 hover:text-white transition-colors">
-            <Folder size={14} />
-          </button>
-        </div>
-        
-        <div className="flex items-center justify-between mb-4 mt-auto border-t border-neutral-900 pt-4">
-          <h3 className="text-sm font-medium text-neutral-400">Your Notes</h3>
-          <button onClick={handleCreateNote} className="text-neutral-500 hover:text-white transition-colors">
-            <Plus size={14} />
-          </button>
-        </div>
-        <div className="space-y-1 mb-8 overflow-y-auto flex-1">
-          {isLoading ? (
-            <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-neutral-500" /></div>
-          ) : notes.length === 0 ? (
-            <div className="text-xs text-neutral-500 text-center py-4">No notes yet</div>
-          ) : notes.map(note => (
-            <button 
-              key={note.id}
-              onClick={() => setActiveNote(note)}
-              className={`w-full flex flex-col items-start px-3 py-2 text-sm rounded-md transition-colors text-left ${
-                activeNoteId === note.id 
-                  ? "bg-neutral-900/80 border border-neutral-800" 
-                  : "hover:bg-neutral-900/30 border border-transparent"
-              }`}
-            >
-              <div className={`font-medium truncate w-full ${activeNoteId === note.id ? "text-white" : "text-neutral-300"}`}>
-                {note.title || "Untitled Note"}
+      <AnimatePresence initial={false}>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 256, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+            className="border-r border-neutral-900 bg-black/50 hidden lg:flex flex-col h-full overscroll-contain overflow-y-auto shrink-0"
+          >
+            <div className="p-4 flex flex-col h-full min-w-[256px]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-neutral-400">Folders</h3>
+                <button className="text-neutral-500 hover:text-white transition-colors">
+                  <Folder size={14} />
+                </button>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-neutral-500 mt-1">
-                <Clock size={10} />
-                {new Date(note.updated_at || note.created_at).toLocaleDateString()}
+              
+              <div className="flex items-center justify-between mb-4 mt-auto border-t border-neutral-900 pt-4">
+                <h3 className="text-sm font-medium text-neutral-400">Your Notes</h3>
+                <button onClick={handleCreateNote} className="text-neutral-500 hover:text-white transition-colors">
+                  <Plus size={14} />
+                </button>
               </div>
-            </button>
-          ))}
-        </div>
+              
+              <div className="space-y-1 mb-8 overflow-y-auto flex-1">
+                {isLoading ? (
+                  <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-neutral-500" /></div>
+                ) : notes.length === 0 ? (
+                  <div className="text-xs text-neutral-500 text-center py-4">No notes yet</div>
+                ) : notes.map(note => (
+                  <button 
+                    key={note.id}
+                    onClick={() => setActiveNote(note)}
+                    className={`w-full flex flex-col items-start px-3 py-2 text-sm rounded-md transition-colors text-left ${
+                      activeNoteId === note.id 
+                        ? "bg-neutral-900/80 border border-neutral-800" 
+                        : "hover:bg-neutral-900/30 border border-transparent"
+                    }`}
+                  >
+                    <div className={`font-medium truncate w-full ${activeNoteId === note.id ? "text-white" : "text-neutral-300"}`}>
+                      {note.title || "Untitled Note"}
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-neutral-500 mt-1">
+                      <Clock size={10} />
+                      {new Date(note.updated_at || note.created_at).toLocaleDateString()}
+                    </div>
+                  </button>
+                ))}
+              </div>
 
-        <div className="flex items-center justify-between mb-4 border-t border-neutral-900 pt-4">
-          <h3 className="text-sm font-medium text-neutral-400">AI Actions</h3>
-        </div>
-        <div className="space-y-2">
-          <button 
-            onClick={() => handleAiAction("Flashcards")}
-            className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20 transition-colors"
-          >
-            <Sparkles size={14} /> Generate Flashcards
-          </button>
-          <button 
-            onClick={() => handleAiAction("Summary")}
-            className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg border border-emerald-500/20 transition-colors"
-          >
-            <Sparkles size={14} /> Summarize Note
-          </button>
-        </div>
-      </motion.div>
+              <div className="flex items-center justify-between mb-4 border-t border-neutral-900 pt-4">
+                <h3 className="text-sm font-medium text-neutral-400">AI Actions</h3>
+              </div>
+              <div className="space-y-2">
+                <button 
+                  onClick={() => handleAiAction("Flashcards")}
+                  className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20 transition-colors"
+                >
+                  <Sparkles size={14} /> Generate Flashcards
+                </button>
+                <button 
+                  onClick={() => handleAiAction("Summary")}
+                  className="w-full flex items-center gap-2 p-2 px-3 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg border border-emerald-500/20 transition-colors"
+                >
+                  <Sparkles size={14} /> Summarize Note
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Editor Area */}
-      <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6">
+      <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6 min-w-0">
+        <div className="absolute top-4 left-6 z-10 hidden lg:block">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 text-neutral-500 hover:text-white hover:bg-neutral-900 rounded-lg transition-colors flex items-center justify-center border border-transparent hover:border-neutral-800"
+            title="Toggle Sidebar"
+          >
+            {isSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+          </button>
+        </div>
         <div className="absolute top-4 right-8 z-10 flex items-center gap-4 text-xs text-neutral-500">
           {activeNoteId && (
             <button 
@@ -256,13 +275,15 @@ export default function NotesPage() {
           </div>
         </div>
         {activeNoteId ? (
-          <TiptapEditor 
-            key={activeNoteId}
-            initialContent={activeNoteContent} 
-            initialTitle={activeNoteTitle}
-            onTitleChange={handleTitleChange}
-            onUpdate={handleContentChange}
-          />
+          <div className="mt-8 lg:mt-0 flex-1 flex flex-col items-center">
+            <TiptapEditor 
+              key={activeNoteId}
+              initialContent={activeNoteContent} 
+              initialTitle={activeNoteTitle}
+              onTitleChange={handleTitleChange}
+              onUpdate={handleContentChange}
+            />
+          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-neutral-500 h-full">
             <FileText size={48} className="mb-4 opacity-20" />

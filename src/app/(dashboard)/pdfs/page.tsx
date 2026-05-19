@@ -138,7 +138,7 @@ export default function PdfManagerPage() {
                 <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mb-6 border border-emerald-500/20">
                   <FileText size={32} />
                 </div>
-                <h3 className="text-xl font-medium text-white mb-2">{file.name}</h3>
+                <h3 className="text-xl font-medium text-white mb-2 max-w-[280px] break-words line-clamp-2 px-2 text-center">{file.name}</h3>
                 <p className="text-sm text-neutral-500 mb-6">Processing complete. (1.2 MB)</p>
                 <button 
                   onClick={() => { setFile(null); setIsDone(false); }}
