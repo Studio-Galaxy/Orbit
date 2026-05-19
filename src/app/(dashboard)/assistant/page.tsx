@@ -106,7 +106,7 @@ export default function AssistantPage() {
       </button>
 
       {/* Chat Messages */}
-      <div className="flex-1 w-full overflow-y-auto px-2 md:px-6 w-full space-y-8 pb-10 custom-scrollbar z-10 flex flex-col justify-end">
+      <div className="flex-1 w-full overflow-y-auto px-2 md:px-6 space-y-8 pb-10 pt-8 custom-scrollbar z-10 flex flex-col">
         {messages.map((msg, i) => (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
