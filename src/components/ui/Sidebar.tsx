@@ -63,8 +63,13 @@ export function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      toast.success("Successfully logged out");
+      const res = await logout();
+      if (res?.error) {
+        toast.error("Failed to log out");
+      } else {
+        toast.success("Successfully logged out");
+        router.push("/auth/login");
+      }
     } catch {
       toast.error("Failed to log out");
     }

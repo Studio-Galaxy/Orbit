@@ -6,8 +6,10 @@ import { User, Mail, Bell, Shield, Moon, Monitor, X, Check } from "lucide-react"
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { logout } from "@/app/auth/actions";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
@@ -47,8 +49,13 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      toast.success("Successfully logged out");
+      const res = await logout();
+      if (res?.error) {
+        toast.error("Failed to log out");
+      } else {
+        toast.success("Successfully logged out");
+        router.push("/auth/login");
+      }
     } catch {
       toast.error("Failed to log out");
     }
