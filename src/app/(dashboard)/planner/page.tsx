@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X, Flag } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X, Flag, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 type Task = {
@@ -18,7 +18,9 @@ export default function PlannerPage() {
   const [newTask, setNewTask] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState("12:00");
   
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,6 +129,28 @@ export default function PlannerPage() {
     }
   };
 
+  const daysInMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1).getDay();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => i);
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const handleDaySelect = (d: number) => {
+     const newDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), d);
+     const y = newDate.getFullYear();
+     const m = String(newDate.getMonth() + 1).padStart(2, '0');
+     const day = String(newDate.getDate()).padStart(2, '0');
+     setDueDate(`${y}-${m}-${day}T${selectedTime}`);
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const t = e.target.value;
+     setSelectedTime(t);
+     if (dueDate) {
+        setDueDate(dueDate.split('T')[0] + 'T' + t);
+     }
+  };
+
   const completedCount = tasks.filter(t => t.status === 'completed').length;
   const progress = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
 
@@ -173,54 +197,97 @@ export default function PlannerPage() {
 
       <div className="flex flex-col gap-8">
         {/* Input */}
-        <form onSubmit={handleAddTask} className="w-full bg-neutral-900/40 border border-neutral-800 rounded-2xl overflow-hidden focus-within:border-neutral-600 transition-colors shadow-sm mb-4">
+        <form onSubmit={handleAddTask} className="w-full bg-neutral-900/40 border border-neutral-800 rounded-2xl focus-within:border-neutral-600 transition-colors shadow-sm mb-4">
           <input 
             type="text" 
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
-            className="w-full bg-transparent border-none outline-none text-white text-base py-5 px-6 placeholder-neutral-500"
+            className="w-full bg-transparent border-none outline-none text-white text-base py-5 px-6 placeholder-neutral-500 rounded-t-2xl"
             placeholder="What needs to be done?"
           />
           
-          <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/60 border-t border-neutral-800/80">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <input 
-                  ref={dateInputRef}
-                  type="datetime-local"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  style={{ colorScheme: 'dark' }}
-                  onClick={(e) => {
-                    // Fallback to showPicker if the click doesn't trigger the native UI
-                    try {
-                      if ('showPicker' in HTMLInputElement.prototype) {
-                        e.preventDefault();
-                        dateInputRef.current?.showPicker();
-                      }
-                    } catch (err) {}
-                  }}
-                />
-                
+          <div className="flex items-center justify-between px-4 py-3 bg-neutral-900/60 border-t border-neutral-800/80 relative rounded-b-2xl">
+            <div className="flex flex-wrap items-center gap-2">
                 {dueDate ? (
-                  <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-medium px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 relative z-0">
+                  <button type="button" onClick={() => setShowDatePicker(!showDatePicker)} className="flex items-center gap-1.5 text-xs text-indigo-400 font-medium px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 relative z-0 transition-colors">
                     <Clock size={12} />
                     {new Date(dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                  </div>
+                  </button>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium px-3 py-2 rounded-lg border border-transparent hover:bg-neutral-800 transition-colors relative z-0">
+                  <button type="button" onClick={() => setShowDatePicker(!showDatePicker)} className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium px-3 py-2 rounded-lg border border-transparent hover:bg-neutral-800 transition-colors relative z-0">
                     <Calendar size={14} />
                     Set Date & Time
-                  </div>
+                  </button>
                 )}
-              </div>
-              
+                
               {dueDate && (
                  <button type="button" onClick={() => setDueDate("")} className="p-2 text-neutral-500 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors relative z-20 tooltip" title="Clear Date">
                    <X size={14} />
                  </button>
               )}
+              
+              <AnimatePresence>
+                {showDatePicker && (
+                   <motion.div 
+                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                     animate={{ opacity: 1, y: 0, scale: 1 }}
+                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                     className="absolute top-14 left-4 p-5 bg-neutral-900/95 backdrop-blur-xl border border-neutral-800 rounded-2xl shadow-2xl z-50 w-72 origin-top-left"
+                   >
+                      {/* Header */}
+                      <div className="flex justify-between items-center mb-5">
+                         <button type="button" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))} className="p-1.5 hover:bg-neutral-800 rounded-md text-neutral-400 hover:text-white transition-colors"><ChevronLeft size={16}/></button>
+                         <span className="text-sm font-semibold text-white tracking-wide">{monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}</span>
+                         <button type="button" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))} className="p-1.5 hover:bg-neutral-800 rounded-md text-neutral-400 hover:text-white transition-colors"><ChevronRight size={16}/></button>
+                      </div>
+                      
+                      {/* Weekdays */}
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                          <div key={d} className="text-center text-[10px] font-semibold text-neutral-500 uppercase">{d}</div>
+                        ))}
+                      </div>
+                      
+                      {/* Days Grid */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {blanks.map(b => <div key={`blank-${b}`} className="w-8 h-8" />)}
+                        {days.map(d => {
+                          const isSelected = dueDate && new Date(dueDate).getDate() === d && new Date(dueDate).getMonth() === calendarMonth.getMonth() && new Date(dueDate).getFullYear() === calendarMonth.getFullYear();
+                          return (
+                            <button 
+                              key={d} 
+                              type="button" 
+                              onClick={() => handleDaySelect(d)}
+                              className={`w-8 h-8 flex items-center justify-center text-xs rounded-full transition-colors ${isSelected ? 'bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/30' : 'text-neutral-300 hover:bg-neutral-800 hover:text-white font-medium'}`}
+                            >
+                              {d}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      
+                      {/* Time Selector */}
+                      <div className="mt-5 pt-4 border-t border-neutral-800/80">
+                         <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-neutral-400">Time</span>
+                            <div className="relative inline-flex items-center">
+                              <input 
+                                type="time"
+                                value={selectedTime}
+                                onChange={handleTimeChange}
+                                className="bg-neutral-800 text-white text-xs font-medium border border-neutral-700/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-neutral-500 appearance-none [color-scheme:dark]"
+                              />
+                            </div>
+                         </div>
+                      </div>
+                      
+                      <div className="mt-5 pt-4 border-t border-neutral-800/80 flex justify-between items-center gap-2">
+                         <button type="button" onClick={() => { setDueDate(""); setShowDatePicker(false); }} className="text-xs text-neutral-400 hover:text-white transition-colors font-medium">Clear</button>
+                         <button type="button" onClick={() => setShowDatePicker(false)} className="text-xs bg-indigo-500 text-white font-semibold px-4 py-1.5 rounded-lg hover:bg-indigo-600 transition-colors shadow-sm">Done</button>
+                      </div>
+                   </motion.div>
+                )}
+              </AnimatePresence>
               
               <button 
                 type="button" 
