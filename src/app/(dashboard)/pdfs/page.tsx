@@ -10,6 +10,8 @@ export default function PdfManagerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [flashcards, setFlashcards] = useState<any[]>([]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -24,17 +26,41 @@ export default function PdfManagerPage() {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      simulateUpload(e.dataTransfer.files[0]);
+      processUpload(e.dataTransfer.files[0]);
     }
   };
 
-  const simulateUpload = (f: File) => {
+  const processUpload = async (f: File) => {
     setFile(f);
     setIsProcessing(true);
-    setTimeout(() => {
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", f);
+      
+      const res = await fetch("/api/pdf/analyze", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to process PDF.");
+      }
+      
+      const data = await res.json();
+      setSummary(data.summary || "No summary provided.");
+      setFlashcards(data.flashcards || []);
+      
       setIsProcessing(false);
       setIsDone(true);
-    }, 3000);
+      toast.success("Document analyzed successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "An error occurred.");
+      setIsProcessing(false);
+      setFile(null);
+    }
   };
 
   return (
@@ -80,7 +106,7 @@ export default function PdfManagerPage() {
                   <label className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors cursor-pointer">
                     Browse Files
                     <input type="file" className="hidden" accept=".pdf" onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) simulateUpload(e.target.files[0]);
+                      if (e.target.files && e.target.files.length > 0) processUpload(e.target.files[0]);
                     }} />
                   </label>
                 </div>
@@ -143,15 +169,18 @@ export default function PdfManagerPage() {
                 </div>
                 <h4 className="text-xl font-semibold text-white mb-4">Summary of Analysis</h4>
                 <p className="text-neutral-400 text-sm leading-relaxed mb-8">
-                  This document covers the fundamental principles of machine learning algorithms, notably highlighting the difference between supervised and unsupervised models.
+                  {summary}
                 </p>
                 
                 <div className="w-full space-y-3 mb-auto">
                   <div 
-                    onClick={() => toast.success("Opening flashcards for this document...")}
+                    onClick={() => {
+                      if (flashcards.length === 0) return toast.error("No flashcards found.");
+                      toast.success(`Opening ${flashcards.length} flashcards...`);
+                    }}
                     className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"
                   >
-                    <span className="text-sm text-neutral-300">View Flashcards (24)</span>
+                    <span className="text-sm text-neutral-300">View Flashcards ({flashcards.length})</span>
                     <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                   </div>
                   <div 
