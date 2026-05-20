@@ -128,7 +128,7 @@ export default function PdfManagerPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Upload Column */}
         <div 
-          className={`flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-3xl transition-all ${
+          className={`flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-3xl min-h-[500px] transition-all ${
             isDragging 
               ? "border-blue-500 bg-blue-500/5 scale-102" 
               : "border-neutral-800 bg-neutral-900/20 hover:bg-neutral-900/40 hover:border-neutral-700"
@@ -208,11 +208,7 @@ export default function PdfManagerPage() {
 
         {/* Results Column */}
         <div className="flex flex-col h-full">
-          <h3 className="text-lg font-medium text-neutral-300 mb-4 flex items-center gap-2">
-            Intelligence Output
-          </h3>
-          
-          <div className="flex-1 bg-neutral-900/30 border border-neutral-800 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-center min-h-[400px]">
+          <div className="flex-1 border-2 border-dashed border-neutral-800 bg-neutral-900/20 rounded-3xl p-6 md:p-12 relative overflow-hidden flex flex-col justify-center min-h-[500px]">
             <AnimatePresence mode="wait">
               {quotaHit ? (
                 <motion.div 
