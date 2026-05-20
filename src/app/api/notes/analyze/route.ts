@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `You are an expert study assistant. Analyze the provided text and output a JSON object containing:
-1. "summary": A concise and comprehensive summary of the text (2-3 sentences max).
+1. "summary": A comprehensive summary of the text. If the text is short, provide a concise summary. If the text is long (multiple pages/topics), provide a detailed and in-depth summary outlining the key points using bullet points and adequate explanations.
 2. "flashcards": An array of objects, where each object has a "question" (string) and an "answer" (string). Generate as many highly relevant flashcards as possible from the text.
 
 IMPORTANT: Your entire response must be valid JSON matching the structure:

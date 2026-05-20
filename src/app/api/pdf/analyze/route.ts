@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `You are an expert study assistant. Analyze the provided document and output a JSON object containing:
-1. "summary": A concise and comprehensive summary of the document (2-3 sentences max).
+1. "summary": A comprehensive summary of the document. If the document is short, provide a concise summary. If the document is long (multiple pages/topics), provide a detailed and in-depth summary outlining the key points using bullet points and adequate explanations.
 2. "flashcards": An array of objects, where each object has a "question" (string) and an "answer" (string). Generate as many highly relevant flashcards as possible.
 3. "quiz": An array of objects, where each object has a "question" (string), "options" (an array of exactly 4 strings), and "answer" (string, must exactly match one of the options). Generate as many quiz questions as you can find in the material (minimum 5, maximum 20).
 4. "viva": An array of exactly 5 objects representing oral exam (viva) questions, where each object has a "question" (string) and an "answer" (string) that a student would verbally provide.

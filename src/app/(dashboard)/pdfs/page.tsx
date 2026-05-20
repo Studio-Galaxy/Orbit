@@ -266,6 +266,8 @@ export default function PdfManagerPage() {
                     <div 
                       onClick={() => {
                         if (flashcards.length === 0) return toast.error("No flashcards found.");
+                        setCurrentFlashcard(0);
+                        setShowAnswer(false);
                         setActiveView('flashcards');
                       }}
                       className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"
@@ -276,6 +278,10 @@ export default function PdfManagerPage() {
                     <div 
                       onClick={() => {
                         if (quiz.length === 0) return toast.error("No quiz found.");
+                        setCurrentQuiz(0);
+                        setScore(0);
+                        setQuizFinished(false);
+                        setSelectedOption(null);
                         setActiveView('quiz');
                       }}
                       className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"
@@ -286,6 +292,8 @@ export default function PdfManagerPage() {
                     <div 
                       onClick={() => {
                         if (viva.length === 0) return toast.error("No viva questions found.");
+                        setCurrentFlashcard(0);
+                        setShowAnswer(false);
                         setActiveView('viva');
                       }}
                       className="flex items-center justify-between p-3 bg-neutral-800/40 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer group"

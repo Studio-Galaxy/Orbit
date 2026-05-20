@@ -333,10 +333,15 @@ export default function NotesPage() {
     setAiResult(null);
 
     try {
-      const res = await fetch("/api/vault/analyze", {
+      const fileRes = await fetch(activeVaultFile.file_url);
+      const blob = await fileRes.blob();
+      
+      const formData = new FormData();
+      formData.append("file", blob, activeVaultFile.filename);
+
+      const res = await fetch("/api/pdf/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileUrl: activeVaultFile.file_url, fileType: activeVaultFile.file_format, action })
+        body: formData
       });
       
       if (!res.ok) {
@@ -586,21 +591,12 @@ export default function NotesPage() {
                    </div>
                  </div>
                  
-                 <div className="flex-1 mt-14 mb-16 overflow-hidden bg-neutral-800/20 z-10 w-full h-full">
+                 <div className="flex-1 mt-14 overflow-hidden bg-neutral-800/20 z-10 w-full h-full">
                    {activeVaultFile.file_format === 'pdf' ? (
                      <iframe src={activeVaultFile.file_url} className="w-full h-full rounded-sm" />
                    ) : (
                      <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(activeVaultFile.file_url)}`} className="w-full h-full bg-white rounded-sm" />
                    )}
-                 </div>
-                 
-                 <div className={`absolute bottom-0 inset-x-0 h-16 bg-neutral-950/80 backdrop-blur-md border-t border-neutral-800 flex items-center justify-center gap-4 px-6 z-20 ${isDocFullscreen ? "rounded-b-xl" : ""}`}>
-                   <button onClick={() => handleVaultAiAction("Summary")} className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 text-sm font-medium rounded-xl transition-all flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0">
-                     <Sparkles size={16} /> Generate Summary
-                   </button>
-                   <button onClick={() => handleVaultAiAction("Flashcards")} className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 text-sm font-medium rounded-xl transition-all flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0">
-                     <Sparkles size={16} /> Generate Flashcards
-                   </button>
                  </div>
               </div>
             </>
@@ -676,7 +672,7 @@ export default function NotesPage() {
                       </div>
                     )}
                     
-                    {aiResult.flashcards && aiResult.flashcards.length > 0 && (
+                    {aiActionTitle === "Flashcards" && aiResult.flashcards && aiResult.flashcards.length > 0 && (
                       <div className="space-y-3 mt-4">
                         <h4 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider">Flashcards</h4>
                         {aiResult.flashcards.map((fc: any, i: number) => (
