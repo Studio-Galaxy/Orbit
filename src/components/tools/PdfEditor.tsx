@@ -52,7 +52,7 @@ export function PdfEditor({ file, pageOrder, setPageOrder }: PdfEditorProps) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-neutral-900/50 border border-neutral-800 rounded-3xl overflow-hidden relative min-h-[500px]">
+    <div className="w-full h-full flex flex-col bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden relative min-h-[500px]">
       <div className="p-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-900/80 backdrop-blur-md z-10">
         <h3 className="text-sm font-semibold text-neutral-300">Arrange Pages</h3>
         <span className="text-[10px] text-neutral-500 font-medium px-3 py-1 bg-white/5 rounded-full uppercase tracking-wider">

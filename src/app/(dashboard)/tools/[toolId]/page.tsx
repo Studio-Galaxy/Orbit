@@ -339,9 +339,9 @@ export default function ToolExecutionPage() {
 
 
   return (
-    <div className="flex-1 w-full bg-black min-h-screen text-white rounded-tl-[2.5rem] md:rounded-l-[2.5rem] border-l border-neutral-800 overflow-hidden relative flex flex-col">
+    <div className="flex-1 w-full bg-black min-h-screen text-white border-l border-neutral-800 overflow-hidden relative flex flex-col">
       {/* Background Gradients */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none" />
+      {/* Background Gradients removed */}
 
       {/* Header */}
       <header className="p-6 md:px-10 border-b border-neutral-900 flex items-center justify-between relative z-10">
@@ -365,7 +365,7 @@ export default function ToolExecutionPage() {
         {/* Dropzone Column */}
         <div className="flex-1 flex flex-col gap-4 h-[calc(100vh-14rem)] max-h-[600px] min-h-[750px] pb-10">
           <div
-            className={`flex-1 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden ${isDragActive
+            className={`flex-1 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden ${isDragActive
               ? "border-blue-500 bg-blue-500/10 scale-[1.01]"
               : "border-neutral-800 bg-neutral-900/40 hover:border-neutral-600"
               } ${files.length > 0 ? 'bg-neutral-900/80 border-solid border-neutral-800' : ''}`}

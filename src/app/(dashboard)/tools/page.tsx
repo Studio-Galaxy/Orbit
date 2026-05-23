@@ -92,9 +92,9 @@ const tools = [
 
 export default function ToolsDashboard() {
   return (
-    <div className="flex-1 w-full bg-black min-h-screen text-white rounded-tl-[2.5rem] md:rounded-l-[2.5rem] border-l border-neutral-800 overflow-hidden relative">
+    <div className="flex-1 w-full bg-black min-h-screen text-white border-l border-neutral-800 overflow-hidden relative">
       {/* Background Gradients */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none" />
+      {/* Background Gradients removed */}
       
       <div className="p-8 md:p-12 max-w-7xl mx-auto h-full overflow-y-auto">
         <header className="mb-12 relative">
@@ -103,8 +103,8 @@ export default function ToolsDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-              Ultimate <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">Document Workspace</span>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-white">
+              Document <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">Workspace</span>
             </h1>
             <p className="text-neutral-400 text-lg max-w-2xl">
               Every tool you need to merge, split, compress, and convert documents in one place. Experience lightning-fast processing with uncompromising quality and absolute privacy.
@@ -119,7 +119,7 @@ export default function ToolsDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group relative p-6 bg-neutral-900 border border-neutral-800 rounded-3xl hover:border-neutral-700 transition-all cursor-pointer overflow-hidden h-full flex flex-col"
+                className="group relative p-6 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-700 transition-all cursor-pointer overflow-hidden h-full flex flex-col"
               >
                 {/* Hover Gradient Background */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
