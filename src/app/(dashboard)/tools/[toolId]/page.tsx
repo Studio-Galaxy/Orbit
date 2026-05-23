@@ -483,14 +483,10 @@ export default function ToolExecutionPage() {
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center w-full h-full text-center"
               >
-                <div className="w-16 h-16 relative flex items-center justify-center mb-6">
-                  <Loader2 size={40} className="text-blue-500 animate-spin absolute" />
-                  <div className="text-xs font-bold text-white absolute">{progress}%</div>
-                </div>
                 <h3 className="text-xl font-bold mb-2">Processing your request</h3>
-                <p className="text-neutral-400 text-sm animate-pulse">Running securely on your device...</p>
+                <p className="text-neutral-400 text-sm animate-pulse mb-8">Running securely on your device...</p>
 
-                <div className="w-full max-w-md h-2 bg-neutral-800 rounded-full mt-8 overflow-hidden">
+                <div className="w-full max-w-md h-2 bg-neutral-800 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-blue-500 rounded-full"
                     initial={{ width: 0 }}
