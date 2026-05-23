@@ -15,8 +15,13 @@ import {
   CheckCircle2,
   Loader2,
   Settings,
-  Scissors
+  Scissors,
+  GripVertical
 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Reorder } from "framer-motion";
+
+const PdfEditor = dynamic<any>(() => import('@/components/tools/PdfEditor').then(mod => mod.PdfEditor), { ssr: false });
 
 // Tools config
 const TOOLS_CONFIG: Record<string, {
@@ -34,9 +39,9 @@ const TOOLS_CONFIG: Record<string, {
     multiple: true,
     minFiles: 2,
   },
-  "split-pdf": {
-    name: "Split PDF",
-    description: "Extract specific pages or split one PDF into individual files.",
+  "edit-pdf": {
+    name: "Edit PDF",
+    description: "Extract specific pages, delete unwanted pages, and visually shuffle them.",
     accept: ".pdf",
     multiple: false,
     minFiles: 1,
@@ -106,13 +111,32 @@ export default function ToolExecutionPage() {
 
   // States
   const [files, setFiles] = useState<File[]>([]);
+  const [draggedFileIndex, setDraggedFileIndex] = useState<number | null>(null);
+
+  // ... rest of the states ...
   const [isDragActive, setIsDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
   const [pageRange, setPageRange] = useState("");
+  const [pageOrder, setPageOrder] = useState<number[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Drag handlers for reordering
+  const handleFileDragStart = (index: number) => {
+    setDraggedFileIndex(index);
+  };
+
+  const handleFileDrop = (index: number) => {
+    if (draggedFileIndex === null) return;
+    const newFiles = [...files];
+    const draggedItem = newFiles[draggedFileIndex];
+    newFiles.splice(draggedFileIndex, 1);
+    newFiles.splice(index, 0, draggedItem);
+    setFiles(newFiles);
+    setDraggedFileIndex(null);
+  };
 
   // Safe check if tool doesn't exist
   if (!config) {
@@ -164,6 +188,7 @@ export default function ToolExecutionPage() {
 
     if (!config.multiple) {
       setFiles([filtered[0]]);
+      setPageOrder([]); // Reset on new file
     } else {
       setFiles((prev) => [...prev, ...filtered]);
     }
@@ -181,7 +206,7 @@ export default function ToolExecutionPage() {
       // Return all pages if empty
       return Array.from({ length: totalPages }, (_, i) => i);
     }
-    const pages = new Set<Number>();
+    const pages = new Set<number>();
     const parts = rangeStr.split(',');
 
     for (const part of parts) {
@@ -200,7 +225,7 @@ export default function ToolExecutionPage() {
         }
       }
     }
-    return Array.from(pages).sort((a: any, b: any) => a - b) as number[];
+    return Array.from(pages).sort((a, b) => a - b);
   };
 
   // --- PROCESSING LOGIC ---
@@ -238,35 +263,30 @@ export default function ToolExecutionPage() {
         }
         setProgress(90);
         const pdfBytes = await mergedPdf.save();
-        saveAs(new Blob([pdfBytes], { type: "application/pdf" }), "merged-document.pdf");
+        saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), "merged-document.pdf");
       }
-      else if (toolId === "split-pdf") {
+      else if (toolId === "edit-pdf") {
         const arrayBuffer = await files[0].arrayBuffer();
         setProgress(20);
         const originalDoc = await PDFDocument.load(arrayBuffer);
-        const totalPages = originalDoc.getPageCount();
 
-        const pagesToExtract = parsePageRange(pageRange, totalPages);
-
-        if (pagesToExtract.length === 0) {
-          toast.error("Invalid page range specified.");
+        if (pageOrder.length === 0) {
+          toast.error("No pages left to extract.");
           setIsProcessing(false);
           return;
         }
 
-        const zip = new JSZip();
-        for (let i = 0; i < pagesToExtract.length; i++) {
-          setProgress(20 + Math.round(((i) / pagesToExtract.length) * 80));
-          const pageIndex = pagesToExtract[i];
-          const newPdf = await PDFDocument.create();
+        const newPdf = await PDFDocument.create();
+        for (let i = 0; i < pageOrder.length; i++) {
+          setProgress(20 + Math.round(((i) / pageOrder.length) * 70));
+          const pageIndex = pageOrder[i];
           const [copiedPage] = await newPdf.copyPages(originalDoc, [pageIndex]);
           newPdf.addPage(copiedPage);
-          const pdfBytes = await newPdf.save();
-          zip.file(`page-${pageIndex + 1}.pdf`, pdfBytes);
         }
 
-        const zipContent = await zip.generateAsync({ type: "blob" });
-        saveAs(zipContent, `${files[0].name.replace('.pdf', '')}-split.zip`);
+        setProgress(95);
+        const pdfBytes = await newPdf.save();
+        saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), `edited-${files[0].name}`);
       }
       else if (toolId === "image-to-pdf") {
         const mergedPdf = await PDFDocument.create();
@@ -294,7 +314,7 @@ export default function ToolExecutionPage() {
         }
         setProgress(90);
         const pdfBytes = await mergedPdf.save();
-        saveAs(new Blob([pdfBytes], { type: "application/pdf" }), "images-converted.pdf");
+        saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), "images-converted.pdf");
       }
       else if (toolId === "compress-pdf") {
         setProgress(30);
@@ -303,7 +323,7 @@ export default function ToolExecutionPage() {
         setProgress(60);
         const pdfBytes = await doc.save({ useObjectStreams: true });
         setProgress(90);
-        saveAs(new Blob([pdfBytes], { type: "application/pdf" }), `compressed-${files[0].name}`);
+        saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), `compressed-${files[0].name}`);
       }
 
       setProgress(100);
@@ -345,11 +365,10 @@ export default function ToolExecutionPage() {
         {/* Dropzone Column */}
         <div className="flex-1 flex flex-col gap-4 h-[calc(100vh-14rem)] max-h-[600px] min-h-[750px] pb-10">
           <div
-            className={`flex-1 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden ${
-              isDragActive
-                ? "border-blue-500 bg-blue-500/10 scale-[1.01]"
-                : "border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900"
-            } ${files.length > 0 ? 'bg-neutral-900/80 border-solid border-neutral-800' : ''}`}
+            className={`flex-1 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden ${isDragActive
+              ? "border-blue-500 bg-blue-500/10 scale-[1.01]"
+              : "border-neutral-800 bg-neutral-900/40 hover:border-neutral-600"
+              } ${files.length > 0 ? 'bg-neutral-900/80 border-solid border-neutral-800' : ''}`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
@@ -400,52 +419,50 @@ export default function ToolExecutionPage() {
                   )}
                 </div>
 
-                <div
-                  className="flex-1 overflow-y-auto w-full pr-2 pb-4"
-                  style={{
-                    maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
-                  }}
-                >
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-max">
-                    <AnimatePresence>
+                {toolId === 'edit-pdf' ? (
+                  <div className="flex-1 w-full mt-4 min-h-[300px]">
+                    <PdfEditor file={files[0]} pageOrder={pageOrder} setPageOrder={setPageOrder} />
+                  </div>
+                ) : (
+                  <div
+                    className="flex-1 overflow-y-auto w-full pr-2 pb-4"
+                    style={{
+                      maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
+                    }}
+                  >
+                  <div
+                    className="flex-1 overflow-y-auto w-full pr-2 pb-4"
+                  >
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-max">
                       {files.map((file, idx) => (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
+                        <div
                           key={`${file.name}-${idx}`}
-                          className="bg-neutral-950 border border-neutral-800 rounded-xl p-3 flex flex-col gap-2 relative group aspect-square items-center justify-center overflow-hidden"
+                          draggable
+                          onDragStart={() => handleFileDragStart(idx)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => handleFileDrop(idx)}
+                          className={`bg-neutral-950 border rounded-xl p-3 flex flex-col gap-2 relative group aspect-square items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing transition-colors ${
+                            draggedFileIndex === idx ? "opacity-30 border-blue-500" : "border-neutral-800 hover:border-neutral-700"
+                          }`}
                         >
                           <button
                             onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                           >
-                            <X size={14} />
+                            <X size={12} />
                           </button>
-                          <FileBox size={32} className="opacity-50 text-blue-400 mb-2" />
-                          <p className="text-[10px] text-neutral-400 truncate w-full text-center px-1">
+                          <FileBox size={24} className="opacity-50 text-blue-400 mb-1" />
+                          <p className="text-[10px] text-neutral-400 truncate w-full text-center px-1 font-medium">
                             {file.name}
                           </p>
-                        </motion.div>
+                          <div className="absolute bottom-2 right-2">
+                            <GripVertical size={12} className="text-neutral-800" />
+                          </div>
+                        </div>
                       ))}
-                    </AnimatePresence>
+                    </div>
                   </div>
-                </div>
-
-                {/* Additional UI for Split Tool */}
-                {toolId === 'split-pdf' && (
-                  <div className="mt-2 bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex-shrink-0">
-                    <label className="text-sm font-medium flex items-center gap-2 mb-2 text-neutral-300">
-                      <Scissors size={16} /> Pages to extract (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 1-5, 8, 11-13 (leave blank for all)"
-                      value={pageRange}
-                      onChange={(e) => setPageRange(e.target.value)}
-                      className="w-full bg-black border border-neutral-800 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors"
-                    />
                   </div>
                 )}
 

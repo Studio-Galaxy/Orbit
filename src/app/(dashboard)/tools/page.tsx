@@ -25,12 +25,12 @@ const tools = [
     iconColor: "text-blue-500",
   },
   {
-    id: "split-pdf",
-    name: "Split PDF",
-    description: "Separate one page or a whole set for easy conversion",
+    id: "edit-pdf",
+    name: "Edit PDF",
+    description: "Visually delete, shuffle, and extract specific pages from your PDF",
     icon: Scissors,
-    color: "from-rose-500/20 to-red-500/20",
-    iconColor: "text-rose-500",
+    color: "from-purple-500/20 to-fuchsia-500/20",
+    iconColor: "text-purple-500",
   },
   {
     id: "image-to-pdf",
