@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Reorder } from "framer-motion";
-import { pdfjs } from "react-pdf";
 
 const PdfEditor = dynamic<any>(() => import('@/components/tools/PdfEditor').then(mod => mod.PdfEditor), { ssr: false });
 
@@ -242,6 +241,9 @@ export default function ToolExecutionPage() {
 
     try {
       if (toolId === "pdf-to-image") {
+        const { pdfjs } = await import("react-pdf");
+        pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+        
         const zip = new JSZip();
         const arrayBuffer = await files[0].arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
