@@ -7,13 +7,13 @@ import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { 
-  ArrowLeft, 
-  UploadCloud, 
-  FileBox, 
-  X, 
-  CheckCircle2, 
-  Loader2, 
+import {
+  ArrowLeft,
+  UploadCloud,
+  FileBox,
+  X,
+  CheckCircle2,
+  Loader2,
   Settings,
   Scissors
 } from "lucide-react";
@@ -183,7 +183,7 @@ export default function ToolExecutionPage() {
     }
     const pages = new Set<Number>();
     const parts = rangeStr.split(',');
-    
+
     for (const part of parts) {
       const trimmed = part.trim();
       if (trimmed.includes('-')) {
@@ -221,7 +221,7 @@ export default function ToolExecutionPage() {
           await new Promise(res => setTimeout(res, 150));
           setProgress(i);
         }
-        
+
         // Setup dummy file download to complete simulation
         const ext = toolId.includes('to-pdf') ? '.pdf' : (toolId.includes('to-word') ? '.docx' : '.zip');
         const dummyBlob = new Blob(["Simulated content for premium conversion. Integrate CloudConvert API for real capabilities."], { type: "text/plain" });
@@ -239,15 +239,15 @@ export default function ToolExecutionPage() {
         setProgress(90);
         const pdfBytes = await mergedPdf.save();
         saveAs(new Blob([pdfBytes], { type: "application/pdf" }), "merged-document.pdf");
-      } 
+      }
       else if (toolId === "split-pdf") {
         const arrayBuffer = await files[0].arrayBuffer();
         setProgress(20);
         const originalDoc = await PDFDocument.load(arrayBuffer);
         const totalPages = originalDoc.getPageCount();
-        
+
         const pagesToExtract = parsePageRange(pageRange, totalPages);
-        
+
         if (pagesToExtract.length === 0) {
           toast.error("Invalid page range specified.");
           setIsProcessing(false);
@@ -264,7 +264,7 @@ export default function ToolExecutionPage() {
           const pdfBytes = await newPdf.save();
           zip.file(`page-${pageIndex + 1}.pdf`, pdfBytes);
         }
-        
+
         const zipContent = await zip.generateAsync({ type: "blob" });
         saveAs(zipContent, `${files[0].name.replace('.pdf', '')}-split.zip`);
       }
@@ -274,7 +274,7 @@ export default function ToolExecutionPage() {
           setProgress(Math.round(((i) / files.length) * 100));
           const file = files[i];
           const arrayBuffer = await file.arrayBuffer();
-          
+
           let image;
           if (file.type === "image/jpeg" || file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg")) {
             image = await mergedPdf.embedJpg(arrayBuffer);
@@ -326,7 +326,7 @@ export default function ToolExecutionPage() {
       {/* Header */}
       <header className="p-6 md:px-10 border-b border-neutral-900 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.push("/tools")}
             className="p-2 bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors"
           >
@@ -341,13 +341,13 @@ export default function ToolExecutionPage() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 relative z-10 flex flex-col md:flex-row gap-8 overflow-y-auto max-w-7xl mx-auto w-full">
-        
+
         {/* Dropzone Column */}
-        <div className="flex-1 flex flex-col gap-4 max-h-[70vh]">
-          <div 
+        <div className="flex-1 flex flex-col gap-4 h-[calc(100vh-14rem)] max-h-[600px] min-h-[750px] pb-10">
+          <div
             className={`flex-1 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden ${
-              isDragActive 
-                ? "border-blue-500 bg-blue-500/10 scale-[1.01]" 
+              isDragActive
+                ? "border-blue-500 bg-blue-500/10 scale-[1.01]"
                 : "border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900"
             } ${files.length > 0 ? 'bg-neutral-900/80 border-solid border-neutral-800' : ''}`}
             onDragEnter={handleDrag}
@@ -355,29 +355,29 @@ export default function ToolExecutionPage() {
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
               accept={config.accept}
               multiple={config.multiple}
               onChange={handleFileChange}
             />
 
             {!isProcessing && !isSuccess && files.length === 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center flex flex-col items-center my-12"
               >
-                <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
                   <UploadCloud size={36} className="text-blue-500" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Upload Files here</h3>
+                <h3 className="text-2xl font-bold mb-2">Upload your files</h3>
                 <p className="text-neutral-400 mb-8 max-w-sm">
-                  Drag and drop your documents here, or click to browse files from your computer.
+                  Drag and drop your documents here, or click to browse. Experience flawless conversion instantly.
                 </p>
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all active:scale-95"
                 >
@@ -391,7 +391,7 @@ export default function ToolExecutionPage() {
                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
                   <h3 className="font-medium text-neutral-300">{files.length} file(s) selected</h3>
                   {config.multiple && (
-                    <button 
+                    <button
                       onClick={() => fileInputRef.current?.click()}
                       className="text-xs text-blue-400 hover:text-blue-300 font-medium"
                     >
@@ -400,7 +400,7 @@ export default function ToolExecutionPage() {
                   )}
                 </div>
 
-                <div 
+                <div
                   className="flex-1 overflow-y-auto w-full pr-2 pb-4"
                   style={{
                     maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
@@ -410,14 +410,14 @@ export default function ToolExecutionPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-max">
                     <AnimatePresence>
                       {files.map((file, idx) => (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
-                          key={`${file.name}-${idx}`} 
+                          key={`${file.name}-${idx}`}
                           className="bg-neutral-950 border border-neutral-800 rounded-xl p-3 flex flex-col gap-2 relative group aspect-square items-center justify-center overflow-hidden"
                         >
-                          <button 
+                          <button
                             onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                           >
@@ -439,18 +439,18 @@ export default function ToolExecutionPage() {
                     <label className="text-sm font-medium flex items-center gap-2 mb-2 text-neutral-300">
                       <Scissors size={16} /> Pages to extract (Optional)
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 1-5, 8, 11-13 (leave blank for all)" 
+                    <input
+                      type="text"
+                      placeholder="e.g. 1-5, 8, 11-13 (leave blank for all)"
                       value={pageRange}
                       onChange={(e) => setPageRange(e.target.value)}
                       className="w-full bg-black border border-neutral-800 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors"
                     />
                   </div>
                 )}
-                
+
                 <div className="mt-4 pt-4 border-t border-neutral-800 flex justify-end flex-shrink-0">
-                  <button 
+                  <button
                     onClick={processFiles}
                     className="px-8 py-3 bg-white text-black hover:bg-neutral-200 font-bold rounded-full transition-all active:scale-95 flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                   >
@@ -462,7 +462,7 @@ export default function ToolExecutionPage() {
             )}
 
             {isProcessing && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center w-full h-full text-center"
@@ -473,9 +473,9 @@ export default function ToolExecutionPage() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Processing your request</h3>
                 <p className="text-neutral-400 text-sm animate-pulse">Running securely on your device...</p>
-                
+
                 <div className="w-full max-w-md h-2 bg-neutral-800 rounded-full mt-8 overflow-hidden">
-                  <motion.div 
+                  <motion.div
                     className="h-full bg-blue-500 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
@@ -485,7 +485,7 @@ export default function ToolExecutionPage() {
             )}
 
             {isSuccess && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center w-full h-full text-center"
@@ -497,7 +497,7 @@ export default function ToolExecutionPage() {
                 <p className="text-neutral-400 mb-8 max-w-sm">
                   Your files have been successfully processed and downloaded to your machine.
                 </p>
-                <button 
+                <button
                   onClick={() => {
                     setFiles([]);
                     setIsSuccess(false);

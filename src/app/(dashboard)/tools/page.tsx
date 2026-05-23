@@ -104,10 +104,10 @@ export default function ToolsDashboard() {
             transition={{ duration: 0.5 }}
           >
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-              Production <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">Document Tools</span>
+              Ultimate <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">Document Workspace</span>
             </h1>
             <p className="text-neutral-400 text-lg max-w-2xl">
-              A premium suite of open-source document converters running lightning fast directly in your browser with zero server lag.
+              Every tool you need to merge, split, compress, and convert documents in one place. Experience lightning-fast processing with uncompromising quality and absolute privacy.
             </p>
           </motion.div>
         </header>
