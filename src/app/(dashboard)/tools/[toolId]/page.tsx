@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Reorder } from "framer-motion";
+import { pdfjs } from "react-pdf";
 
 const PdfEditor = dynamic<any>(() => import('@/components/tools/PdfEditor').then(mod => mod.PdfEditor), { ssr: false });
 
@@ -240,17 +241,31 @@ export default function ToolExecutionPage() {
     setIsSuccess(false);
 
     try {
-      if (config.isMocked) {
-        // Simulated Processing for Complex/Office Formats
-        for (let i = 0; i <= 100; i += 5) {
-          await new Promise(res => setTimeout(res, 150));
-          setProgress(i);
-        }
+      if (toolId === "pdf-to-image") {
+        const zip = new JSZip();
+        const arrayBuffer = await files[0].arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+          setProgress(Math.round((i / pdf.numPages) * 100));
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
 
-        // Setup dummy file download to complete simulation
-        const ext = toolId.includes('to-pdf') ? '.pdf' : (toolId.includes('to-word') ? '.docx' : '.zip');
-        const dummyBlob = new Blob(["Simulated content for premium conversion. Integrate CloudConvert API for real capabilities."], { type: "text/plain" });
-        saveAs(dummyBlob, `converted-${files[0].name.split('.')[0]}${ext}`);
+          if (context) {
+            await (page as any).render({ canvasContext: context, viewport }).promise;
+            const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+            if (blob) {
+              zip.file(`page-${i}.jpg`, blob);
+            }
+          }
+        }
+        
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `images-${files[0].name.split('.')[0]}.zip`);
       }
       else if (toolId === "merge-pdf") {
         const mergedPdf = await PDFDocument.create();
@@ -261,13 +276,11 @@ export default function ToolExecutionPage() {
           const copiedPages = await mergedPdf.copyPages(doc, doc.getPageIndices());
           copiedPages.forEach((page) => mergedPdf.addPage(page));
         }
-        setProgress(90);
         const pdfBytes = await mergedPdf.save();
         saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), "merged-document.pdf");
       }
       else if (toolId === "edit-pdf") {
         const arrayBuffer = await files[0].arrayBuffer();
-        setProgress(20);
         const originalDoc = await PDFDocument.load(arrayBuffer);
 
         if (pageOrder.length === 0) {
@@ -278,13 +291,12 @@ export default function ToolExecutionPage() {
 
         const newPdf = await PDFDocument.create();
         for (let i = 0; i < pageOrder.length; i++) {
-          setProgress(20 + Math.round(((i) / pageOrder.length) * 70));
+          setProgress(Math.round(((i) / pageOrder.length) * 100));
           const pageIndex = pageOrder[i];
           const [copiedPage] = await newPdf.copyPages(originalDoc, [pageIndex]);
           newPdf.addPage(copiedPage);
         }
 
-        setProgress(95);
         const pdfBytes = await newPdf.save();
         saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), `edited-${files[0].name}`);
       }
@@ -301,37 +313,34 @@ export default function ToolExecutionPage() {
           } else if (file.type === "image/png" || file.name.toLowerCase().endsWith(".png")) {
             image = await mergedPdf.embedPng(arrayBuffer);
           } else {
-            continue; // Skip unsupported
+            continue;
           }
 
           const page = mergedPdf.addPage([image.width, image.height]);
-          page.drawImage(image, {
-            x: 0,
-            y: 0,
-            width: image.width,
-            height: image.height,
-          });
+          page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
         }
-        setProgress(90);
         const pdfBytes = await mergedPdf.save();
         saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), "images-converted.pdf");
       }
       else if (toolId === "compress-pdf") {
-        setProgress(30);
         const arrayBuffer = await files[0].arrayBuffer();
         const doc = await PDFDocument.load(arrayBuffer);
-        setProgress(60);
         const pdfBytes = await doc.save({ useObjectStreams: true });
-        setProgress(90);
         saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), `compressed-${files[0].name}`);
+      }
+      else if (config.isMocked) {
+         // Fallback for tools that require a backend/server for high-fidelity conversion (Word/Excel/PPT)
+         toast.info("Production implementation for Office files requires a server-side API (e.g., CloudConvert or LibreOffice library).");
+         setIsProcessing(false);
+         return;
       }
 
       setProgress(100);
       setIsSuccess(true);
-      toast.success("Conversion completed successfully!");
+      toast.success("Task completed successfully!");
     } catch (error) {
       console.error(error);
-      toast.error("An error occurred during conversion.");
+      toast.error("An error occurred during processing.");
     } finally {
       setIsProcessing(false);
     }
