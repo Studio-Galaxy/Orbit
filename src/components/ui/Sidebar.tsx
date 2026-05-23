@@ -16,13 +16,15 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Wrench
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Notes", href: "/notes", icon: FileText },
   { name: "PDFs", href: "/pdfs", icon: FileBox },
+  { name: "Tools", href: "/tools", icon: Wrench },
   { name: "AI Assistant", href: "/assistant", icon: Sparkles },
   { name: "Planner", href: "/planner", icon: Calendar },
   { name: "Settings", href: "/settings", icon: Settings },
