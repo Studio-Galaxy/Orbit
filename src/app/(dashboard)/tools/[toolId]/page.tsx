@@ -431,38 +431,37 @@ export default function ToolExecutionPage() {
                       WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
                     }}
                   >
-                  <div
-                    className="flex-1 overflow-y-auto w-full pr-2 pb-4"
-                  >
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-max">
-                      {files.map((file, idx) => (
-                        <div
-                          key={`${file.name}-${idx}`}
-                          draggable
-                          onDragStart={() => handleFileDragStart(idx)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => handleFileDrop(idx)}
-                          className={`bg-neutral-950 border rounded-xl p-3 flex flex-col gap-2 relative group aspect-square items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing transition-colors ${
-                            draggedFileIndex === idx ? "opacity-30 border-blue-500" : "border-neutral-800 hover:border-neutral-700"
-                          }`}
-                        >
-                          <button
-                            onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    <div
+                      className="flex-1 overflow-y-auto w-full pr-2 pb-4"
+                    >
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-max">
+                        {files.map((file, idx) => (
+                          <div
+                            key={`${file.name}-${idx}`}
+                            draggable
+                            onDragStart={() => handleFileDragStart(idx)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => handleFileDrop(idx)}
+                            className={`bg-neutral-950 border rounded-xl p-3 flex flex-col gap-2 relative group aspect-square items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing transition-colors ${draggedFileIndex === idx ? "opacity-30 border-blue-500" : "border-neutral-800 hover:border-neutral-700"
+                              }`}
                           >
-                            <X size={12} />
-                          </button>
-                          <FileBox size={24} className="opacity-50 text-blue-400 mb-1" />
-                          <p className="text-[10px] text-neutral-400 truncate w-full text-center px-1 font-medium">
-                            {file.name}
-                          </p>
-                          <div className="absolute bottom-2 right-2">
-                            <GripVertical size={12} className="text-neutral-800" />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            >
+                              <X size={12} />
+                            </button>
+                            <FileBox size={24} className="opacity-50 text-blue-400 mb-1" />
+                            <p className="text-[10px] text-neutral-400 truncate w-full text-center px-1 font-medium">
+                              {file.name}
+                            </p>
+                            <div className="absolute bottom-2 right-2">
+                              <GripVertical size={12} className="text-neutral-800" />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
                   </div>
                 )}
 
