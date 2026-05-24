@@ -11,14 +11,14 @@ export default function PdfManagerPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [quotaHit, setQuotaHit] = useState(false);
-  
+
   const [summary, setSummary] = useState("");
   const [flashcards, setFlashcards] = useState<any[]>([]);
   const [quiz, setQuiz] = useState<any[]>([]);
   const [viva, setViva] = useState<any[]>([]);
 
   const [activeView, setActiveView] = useState<'summary' | 'flashcards' | 'quiz' | 'viva'>('summary');
-  
+
   // Flashcard states
   const [currentFlashcard, setCurrentFlashcard] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -59,16 +59,16 @@ export default function PdfManagerPage() {
     setScore(0);
     setQuizFinished(false);
     setSelectedOption(null);
-    
+
     try {
       const formData = new FormData();
       formData.append("file", f);
-      
+
       const res = await fetch("/api/pdf/analyze", {
         method: "POST",
         body: formData,
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
         if (errorData?.code === "QUOTA_EXCEEDED") {
@@ -78,13 +78,13 @@ export default function PdfManagerPage() {
         }
         throw new Error(errorData?.error || "Failed to process PDF.");
       }
-      
+
       const data = await res.json();
       setSummary(data.summary || "No summary provided.");
       setFlashcards(data.flashcards || []);
       setQuiz(data.quiz || []);
       setViva(data.viva || []);
-      
+
       setIsProcessing(false);
       setIsDone(true);
       toast.success("Document analyzed successfully!");
@@ -99,7 +99,7 @@ export default function PdfManagerPage() {
   const handleQuizAnswer = (option: string) => {
     if (selectedOption) return; // Prevent multiple clicks
     setSelectedOption(option);
-    
+
     if (option === quiz[currentQuiz].answer) {
       setScore(s => s + 1);
     }
@@ -127,10 +127,10 @@ export default function PdfManagerPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Upload Column */}
-        <div 
-          className={`flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-3xl min-h-[500px] transition-all ${
-            isDragging 
-              ? "border-blue-500 bg-blue-500/5 scale-102" 
+        <div
+          className={`flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-3xl min-h-[675px] transition-all ${
+            isDragging
+              ? "border-blue-500 bg-blue-500/5 scale-102"
               : "border-neutral-800 bg-neutral-900/20 hover:bg-neutral-900/40 hover:border-neutral-700"
           }`}
           onDragOver={handleDragOver}
@@ -139,7 +139,7 @@ export default function PdfManagerPage() {
         >
           <AnimatePresence mode="wait">
             {!file ? (
-              <motion.div 
+              <motion.div
                 key="upload"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -163,7 +163,7 @@ export default function PdfManagerPage() {
                 </div>
               </motion.div>
             ) : isProcessing ? (
-              <motion.div 
+              <motion.div
                 key="processing"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -180,7 +180,7 @@ export default function PdfManagerPage() {
                 </p>
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="done"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -191,9 +191,9 @@ export default function PdfManagerPage() {
                 </div>
                 <h3 className="text-xl font-medium text-white mb-2 max-w-[280px] break-words line-clamp-2 px-2 text-center">{file.name}</h3>
                 <p className="text-sm text-neutral-500 mb-6">Processing complete.</p>
-                <button 
-                  onClick={() => { 
-                    setFile(null); 
+                <button
+                  onClick={() => {
+                    setFile(null);
                     setIsDone(false);
                     setActiveView('summary');
                   }}
@@ -211,7 +211,7 @@ export default function PdfManagerPage() {
           <div className="flex-1 border-2 border-dashed border-neutral-800 bg-neutral-900/20 rounded-3xl p-6 md:p-12 relative overflow-hidden flex flex-col justify-center min-h-[500px]">
             <AnimatePresence mode="wait">
               {quotaHit ? (
-                <motion.div 
+                <motion.div
                   key="quota"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -232,7 +232,7 @@ export default function PdfManagerPage() {
                   </button>
                 </motion.div>
               ) : !isDone ? (
-                <motion.div 
+                <motion.div
                   key="empty"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -243,7 +243,7 @@ export default function PdfManagerPage() {
                   <p className="text-sm">Upload a document to see AI insights here.</p>
                 </motion.div>
               ) : activeView === 'summary' ? (
-                <motion.div 
+                <motion.div
                   key="summary"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -257,9 +257,9 @@ export default function PdfManagerPage() {
                   <p className="text-neutral-400 text-sm leading-relaxed mb-8 flex-1">
                     {summary}
                   </p>
-                  
+
                   <div className="w-full space-y-3 mt-auto">
-                    <div 
+                    <div
                       onClick={() => {
                         if (flashcards.length === 0) return toast.error("No flashcards found.");
                         setCurrentFlashcard(0);
@@ -271,7 +271,7 @@ export default function PdfManagerPage() {
                       <span className="text-sm text-neutral-300">View Flashcards ({flashcards.length})</span>
                       <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                     </div>
-                    <div 
+                    <div
                       onClick={() => {
                         if (quiz.length === 0) return toast.error("No quiz found.");
                         setCurrentQuiz(0);
@@ -285,7 +285,7 @@ export default function PdfManagerPage() {
                       <span className="text-sm text-neutral-300">Take Practice Quiz ({quiz.length})</span>
                       <ChevronRight size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                     </div>
-                    <div 
+                    <div
                       onClick={() => {
                         if (viva.length === 0) return toast.error("No viva questions found.");
                         setCurrentFlashcard(0);
@@ -308,7 +308,7 @@ export default function PdfManagerPage() {
                   className="w-full h-full flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <button 
+                    <button
                       onClick={() => setActiveView('summary')}
                       className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium"
                     >
@@ -318,14 +318,14 @@ export default function PdfManagerPage() {
                       Card {currentFlashcard + 1} of {flashcards.length}
                     </span>
                   </div>
-                  
+
                   <div className="flex-1 bg-black/40 border border-neutral-800/80 rounded-3xl p-10 flex flex-col items-center justify-center relative overflow-hidden mb-6 shadow-2xl">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
-                    
+
                     <h3 className="text-xl font-medium text-white mb-8 leading-relaxed max-w-2xl text-center z-10 w-full px-4">
                       {flashcards[currentFlashcard]?.question}
                     </h3>
-                    
+
                     <div className="min-h-[120px] w-full flex flex-col items-center justify-start z-10">
                       <AnimatePresence mode="wait">
                         {!showAnswer ? (
@@ -356,7 +356,7 @@ export default function PdfManagerPage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-auto">
-                    <button 
+                    <button
                       onClick={() => {
                         setShowAnswer(false);
                         setTimeout(() => setCurrentFlashcard(prev => Math.max(0, prev - 1)), 200);
@@ -366,7 +366,7 @@ export default function PdfManagerPage() {
                     >
                       Previous
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setShowAnswer(false);
                         setTimeout(() => setCurrentFlashcard(prev => Math.min(flashcards.length - 1, prev + 1)), 200);
@@ -387,7 +387,7 @@ export default function PdfManagerPage() {
                   className="w-full h-full flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <button 
+                    <button
                       onClick={() => setActiveView('summary')}
                       className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium"
                     >
@@ -407,7 +407,7 @@ export default function PdfManagerPage() {
                       </div>
                       <h3 className="text-xl font-bold text-white mb-2">Quiz Completed!</h3>
                       <p className="text-neutral-400 text-sm mb-6">You've tested your knowledge on this document.</p>
-                      <button 
+                      <button
                          onClick={() => {
                            setCurrentQuiz(0);
                            setScore(0);
@@ -463,7 +463,7 @@ export default function PdfManagerPage() {
                   className="w-full h-full flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <button 
+                    <button
                       onClick={() => setActiveView('summary')}
                       className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium"
                     >
@@ -473,14 +473,14 @@ export default function PdfManagerPage() {
                       Viva {currentFlashcard + 1} of {viva.length}
                     </span>
                   </div>
-                  
+
                   <div className="flex-1 bg-black/40 border border-neutral-800/80 rounded-3xl p-10 flex flex-col items-center justify-center relative overflow-hidden mb-6 shadow-2xl">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 bg-rose-500/10 blur-[100px] rounded-full pointer-events-none" />
-                    
+
                     <h3 className="text-xl font-medium text-white mb-8 leading-relaxed max-w-2xl text-center z-10 w-full px-4">
                       {viva[currentFlashcard]?.question}
                     </h3>
-                    
+
                     <div className="min-h-[120px] w-full flex flex-col items-center justify-start z-10">
                       <AnimatePresence mode="wait">
                         {!showAnswer ? (
@@ -511,7 +511,7 @@ export default function PdfManagerPage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-auto">
-                    <button 
+                    <button
                       onClick={() => {
                         setShowAnswer(false);
                         setTimeout(() => setCurrentFlashcard(prev => Math.max(0, prev - 1)), 200);
@@ -521,7 +521,7 @@ export default function PdfManagerPage() {
                     >
                       Previous
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setShowAnswer(false);
                         setTimeout(() => setCurrentFlashcard(prev => Math.min(viva.length - 1, prev + 1)), 200);
