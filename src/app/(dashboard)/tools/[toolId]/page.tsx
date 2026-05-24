@@ -201,6 +201,13 @@ export default function ToolExecutionPage() {
     setDraggedFileIndex(null);
   };
 
+  // Reset scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const container = document.querySelector('main');
+    if (container) container.scrollTo(0, 0);
+  }, [toolId]);
+
   // Safe check if tool doesn't exist
   if (!config) {
     return (

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { 
-  FileText, 
-  Files, 
-  FileImage, 
-  FileDown, 
-  FileBox, 
+import {
+  FileText,
+  Files,
+  FileImage,
+  FileDown,
+  FileBox,
   Scissors,
   ArrowRight,
   Image as ImageIcon,
@@ -114,25 +114,25 @@ function ToolCard({ tool, index }: { tool: any, index: number }) {
         onMouseLeave={() => setIsHovered(false)}
         className={`group relative p-6 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-dashed transition-all cursor-pointer overflow-hidden h-full flex flex-col hover:${tool.iconColor.replace('text-', 'border-')}/60`}
       >
-        <div 
+        <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none blur-[60px]"
           style={{
             background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${colorMap[tool.iconColor]}, rgba(0,0,0,0) 70%)`,
           }}
         />
-        
+
         {/* Specialized Glass Layer */}
         <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
         {/* Liquid Gradient Mask (the "Camo" fade) */}
-        <div 
-          className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-30 transition-opacity duration-700 pointer-events-none`} 
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-30 transition-opacity duration-700 pointer-events-none`}
           style={{
             maskImage: `radial-gradient(300px circle at ${mousePos.x}px ${mousePos.y}px, black, transparent)`,
             WebkitMaskImage: `radial-gradient(300px circle at ${mousePos.x}px ${mousePos.y}px, black, transparent)`
           }}
         />
-        
+
         <div className="relative z-10">
           <div className={`w-14 h-14 rounded-2xl bg-neutral-950 flex items-center justify-center mb-6 shadow-inner ${tool.iconColor}`}>
             <tool.icon size={28} />
@@ -144,7 +144,7 @@ function ToolCard({ tool, index }: { tool: any, index: number }) {
             {tool.description}
           </p>
         </div>
-        
+
         <div className="mt-auto relative z-10 flex items-center text-sm font-medium text-white/50 group-hover:text-white transition-colors">
           Open Tool
           <ArrowRight size={16} className="ml-2 transform group-hover:translate-x-1 transition-transform" />
@@ -171,7 +171,7 @@ export default function ToolsDashboard() {
     <div className="flex-1 w-full bg-black min-h-screen text-white border-l border-neutral-800 overflow-hidden relative">
       {/* Background Gradients */}
       {/* Background Gradients removed */}
-      
+
       <div className="p-8 md:p-12 max-w-7xl mx-auto h-full overflow-y-auto">
         <header className="mb-12 relative">
           <motion.div
