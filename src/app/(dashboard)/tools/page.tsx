@@ -119,19 +119,22 @@ export default function ToolsDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group relative p-6 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-700 transition-all cursor-pointer overflow-hidden h-full flex flex-col"
+                className="group relative p-6 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-white/40 hover:border-dashed transition-all cursor-pointer overflow-hidden h-full flex flex-col"
               >
-                {/* Hover Gradient Background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+                {/* Liquid Glass Hover Effect */}
+                <div className="absolute inset-0 bg-white/[0.04] backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                
+                {/* Subtle radial glow on hover */}
+                <div className={`absolute -inset-24 bg-gradient-radial ${tool.color.replace('from-', 'from-white/').replace('/20', '/10')} opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500 pointer-events-none`} />
                 
                 <div className="relative z-10">
                   <div className={`w-14 h-14 rounded-2xl bg-neutral-950 flex items-center justify-center mb-6 shadow-inner ${tool.iconColor}`}>
                     <tool.icon size={28} />
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
+                  <h3 className="text-xl font-semibold text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">
                     {tool.name}
                   </h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed mb-6">
+                  <p className="text-sm text-neutral-400 leading-relaxed mb-6 group-hover:text-neutral-300 transition-colors">
                     {tool.description}
                   </p>
                 </div>
