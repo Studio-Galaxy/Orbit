@@ -23,6 +23,69 @@ import { Reorder } from "framer-motion";
 
 const PdfEditor = dynamic<any>(() => import('@/components/tools/PdfEditor').then(mod => mod.PdfEditor), { ssr: false });
 
+function FilePreviewItem({ file }: { file: File }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const generatePreview = async () => {
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        if (isMounted) setPreview(url);
+        return () => URL.revokeObjectURL(url);
+      } 
+      else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        setIsLoading(true);
+        try {
+          const { pdfjs } = await import("react-pdf");
+          pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+          
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+          const page = await pdf.getPage(1);
+          
+          const viewport = page.getViewport({ scale: 0.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          
+          if (context) {
+            await (page as any).render({ canvasContext: context, viewport }).promise;
+            if (isMounted) setPreview(canvas.toDataURL());
+          }
+        } catch (e) {
+          console.error("PDF Preview Error:", e);
+        } finally {
+          if (isMounted) setIsLoading(false);
+        }
+      }
+    };
+
+    generatePreview();
+    return () => { isMounted = false; };
+  }, [file]);
+
+  if (isLoading) {
+    return <div className="flex flex-col items-center gap-2">
+      <Loader2 size={24} className="animate-spin text-neutral-600" />
+      <span className="text-[8px] text-neutral-600 uppercase font-bold tracking-widest">Rendering...</span>
+    </div>;
+  }
+
+  if (preview) {
+    return (
+      <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg">
+        <img src={preview} alt={file.name} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  return <FileBox size={24} className="opacity-50 text-blue-400" />;
+}
+
 // Tools config
 const TOOLS_CONFIG: Record<string, {
   name: string;
@@ -243,11 +306,11 @@ export default function ToolExecutionPage() {
       if (toolId === "pdf-to-image") {
         const { pdfjs } = await import("react-pdf");
         pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-        
+
         const zip = new JSZip();
         const arrayBuffer = await files[0].arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-        
+
         for (let i = 1; i <= pdf.numPages; i++) {
           setProgress(Math.round((i / pdf.numPages) * 100));
           const page = await pdf.getPage(i);
@@ -265,7 +328,7 @@ export default function ToolExecutionPage() {
             }
           }
         }
-        
+
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(content, `images-${files[0].name.split('.')[0]}.zip`);
       }
@@ -331,10 +394,10 @@ export default function ToolExecutionPage() {
         saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), `compressed-${files[0].name}`);
       }
       else if (config.isMocked) {
-         // Fallback for tools that require a backend/server for high-fidelity conversion (Word/Excel/PPT)
-         toast.info("Production implementation for Office files requires a server-side API (e.g., CloudConvert or LibreOffice library).");
-         setIsProcessing(false);
-         return;
+        // Fallback for tools that require a backend/server for high-fidelity conversion (Word/Excel/PPT)
+        toast.info("Production implementation for Office files requires a server-side API (e.g., CloudConvert or LibreOffice library).");
+        setIsProcessing(false);
+        return;
       }
 
       setProgress(100);
@@ -453,7 +516,7 @@ export default function ToolExecutionPage() {
                             onDragStart={() => handleFileDragStart(idx)}
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => handleFileDrop(idx)}
-                            className={`bg-neutral-950 border rounded-xl p-3 flex flex-col gap-2 relative group aspect-square items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing transition-colors ${draggedFileIndex === idx ? "opacity-30 border-blue-500" : "border-neutral-800 hover:border-neutral-700"
+                            className={`bg-neutral-950 border rounded-xl p-3 flex flex-col gap-2 relative group aspect-[3/4] items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing transition-colors ${draggedFileIndex === idx ? "opacity-30 border-blue-500" : "border-neutral-800 hover:border-neutral-700"
                               }`}
                           >
                             <button
@@ -462,8 +525,10 @@ export default function ToolExecutionPage() {
                             >
                               <X size={12} />
                             </button>
-                            <FileBox size={24} className="opacity-50 text-blue-400 mb-1" />
-                            <p className="text-[10px] text-neutral-400 truncate w-full text-center px-1 font-medium">
+                            <div className="flex-1 w-full flex items-center justify-center overflow-hidden bg-white/5 rounded-lg p-2">
+                              <FilePreviewItem file={file} />
+                            </div>
+                            <p className="text-[10px] text-neutral-400 truncate w-full text-center px-1 font-medium mt-1">
                               {file.name}
                             </p>
                             <div className="absolute bottom-2 right-2">
