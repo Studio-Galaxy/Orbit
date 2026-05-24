@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload } from "lucide-react";
+import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload, Copy, Check } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
@@ -10,6 +10,13 @@ import * as pdfjs from "pdfjs-dist";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import mammoth from "mammoth";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 type Message = {
   id: string;
@@ -31,6 +38,58 @@ const TOOL_COMMANDS = [
   { id: "image-to-pdf", label: "#image-to-pdf", desc: "Turn @Images into a PDF" },
   { id: "word-to-pdf", label: "#word-to-pdf", desc: "Convert Word doc to PDF" },
 ];
+
+const CodeBlock = ({ className, children, ...props }: any) => {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("Code copied to clipboard!");
+  };
+
+  const inline = !className;
+
+  return !inline ? (
+    <div className="relative group/code my-6 not-prose">
+      <div className="absolute right-4 top-4 opacity-0 group-hover/code:opacity-100 transition-opacity z-20">
+        <button 
+          onClick={handleCopy}
+          className="p-2 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-xl border border-white/10 text-neutral-500 hover:text-white transition-all outline-none"
+        >
+          {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+        </button>
+      </div>
+      <div className="rounded-2xl overflow-hidden border border-neutral-900 shadow-2xl">
+        <SyntaxHighlighter
+            language={language}
+            style={oneDark}
+            customStyle={{
+                margin: 0,
+                padding: '1.5rem',
+                backgroundColor: '#050505',
+                fontSize: '13px',
+                lineHeight: '1.6',
+            }}
+            codeTagProps={{
+                style: {
+                    fontFamily: 'inherit',
+                }
+            }}
+        >
+            {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      </div>
+    </div>
+  ) : (
+    <code className="bg-neutral-900/50 text-indigo-300 px-1.5 py-0.5 rounded text-[12px] font-medium font-mono border border-neutral-800/50" {...props}>
+      {children}
+    </code>
+  );
+};
 
 export default function AssistantPage() {
   const [input, setInput] = useState("");
@@ -348,23 +407,6 @@ export default function AssistantPage() {
     }
   };
 
-  const parseMarkdownToHTML = (md: string) => {
-    return md
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .split('\n')
-      .map(line => {
-        let l = line.trim();
-        if (!l) return '<p><br></p>';
-        if (l.startsWith('### ')) return `<h3>${l.substring(4)}</h3>`;
-        if (l.startsWith('## ')) return `<h2>${l.substring(3)}</h2>`;
-        if (l.startsWith('# ')) return `<h1>${l.substring(2)}</h1>`;
-        l = l.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        l = l.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        if (l.startsWith('- ') || l.startsWith('* ')) return `<li style="margin-left: 1rem; list-style-type: disc;">${l.substring(2)}</li>`;
-        return `<p>${l}</p>`;
-      })
-      .join('');
-  };
 
   const renderMessageContent = (content: string, msgId: string) => {
     try {
@@ -443,10 +485,18 @@ export default function AssistantPage() {
       if (parsed.type === 'save_note') {
          return (
           <div className="w-full mt-2 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-             <div
-               className="text-sm text-indigo-100 mb-4 markdown-preview prose prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-indigo-300 prose-li:my-0.5 prose-strong:text-white max-w-none"
-               dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(parsed.explanation || "I've generated a detailed explanation for this topic.") }}
-             />
+             <div className="text-sm text-indigo-100 mb-4 markdown-preview prose prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-indigo-300 prose-li:my-0.5 prose-strong:text-white max-w-none">
+                <ReactMarkdown 
+                    remarkPlugins={[remarkGfm, remarkMath]} 
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                        pre: ({ children }) => <>{children}</>,
+                        code: CodeBlock
+                    }}
+                >
+                    {parsed.explanation || "I've generated a detailed explanation for this topic."}
+                </ReactMarkdown>
+             </div>
              <div className="flex flex-col gap-2 border-t border-indigo-500/20 pt-4">
                <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">Suggested Note</div>
                <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 p-3 rounded-lg overflow-hidden shadow-inner">
@@ -461,7 +511,7 @@ export default function AssistantPage() {
                           await supabase.from('notes').insert({
                             user_id: user.id,
                             title: parsed.filename || "AI Generated Note",
-                            content: parseMarkdownToHTML(parsed.content || parsed.explanation)
+                            content: parsed.content || parsed.explanation
                           });
                           toast.success("Saved to Notes", { id: toastId });
                         }
@@ -482,7 +532,7 @@ export default function AssistantPage() {
         return (
           <div className="w-full mt-2 p-5 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] pointer-events-none" />
-
+            
             <div className="flex items-center gap-4 mb-6 relative">
               <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner">
                 <FileBox size={24} />
@@ -500,11 +550,11 @@ export default function AssistantPage() {
                   try {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) throw new Error("Please login");
-
+                    
                     const res = await fetch(parsed.data);
                     const blob = await res.blob();
                     const file = new File([blob], parsed.filename, { type: blob.type });
-
+                    
                     const filePath = `${user.id}/${Date.now()}_${parsed.filename}`;
                     const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
                     if (uploadError) throw uploadError;
@@ -536,7 +586,7 @@ export default function AssistantPage() {
               >
                 <Save size={14} className="group-hover:scale-110 transition-transform" /> Save to Vault
               </button>
-
+              
               <button
                 onClick={async () => {
                   const res = await fetch(parsed.data);
@@ -555,7 +605,20 @@ export default function AssistantPage() {
       return <pre className="whitespace-pre-wrap font-sans text-sm">{JSON.stringify(parsed, null, 2)}</pre>;
     } catch (e) {
       // Not JSON, just standard Markdown/Text
-      return <div className="text-sm leading-relaxed whitespace-pre-wrap">{content}</div>;
+      return (
+        <div className="text-sm leading-relaxed prose prose-invert prose-p:my-2 prose-headings:mb-3 prose-headings:mt-6 prose-strong:text-white max-w-none">
+            <ReactMarkdown 
+                remarkPlugins={[remarkGfm, remarkMath]} 
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                    pre: ({ children }) => <>{children}</>,
+                    code: CodeBlock
+                }}
+            >
+                {content}
+            </ReactMarkdown>
+        </div>
+      );
     }
   };
 
