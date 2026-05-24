@@ -2,9 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save } from "lucide-react";
+import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { PDFDocument } from "pdf-lib";
+import * as pdfjs from "pdfjs-dist";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import mammoth from "mammoth";
 
 type Message = {
   id: string;
@@ -18,12 +23,21 @@ const COMMANDS = [
   { id: "viva-voice", label: "/viva-voice", desc: "Generate oral exam questions" },
 ];
 
+const TOOL_COMMANDS = [
+  { id: "merge-pdf", label: "#merge-pdf", desc: "Merge multiple @PDFs into one" },
+  { id: "edit-pdf", label: "#edit-pdf", desc: "Rearrange/Delete pages in @PDF" },
+  { id: "compress-pdf", label: "#compress-pdf", desc: "Shrink @PDF file size" },
+  { id: "pdf-to-image", label: "#pdf-to-image", desc: "Extract JPGs from @PDF" },
+  { id: "image-to-pdf", label: "#image-to-pdf", desc: "Turn @Images into a PDF" },
+  { id: "word-to-pdf", label: "#word-to-pdf", desc: "Convert Word doc to PDF" },
+];
+
 export default function AssistantPage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -35,6 +49,7 @@ export default function AssistantPage() {
   const [availableDocs, setAvailableDocs] = useState<{type: string, id: string, label: string, url?: string}[]>([]);
   const [showMentions, setShowMentions] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
+  const [showTools, setShowTools] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [firstName, setFirstName] = useState("");
@@ -53,7 +68,7 @@ export default function AssistantPage() {
     const fetchDocs = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
+
       if (user.user_metadata?.full_name) {
         const rawName = user.user_metadata.full_name.split(' ')[0];
         setFirstName(rawName);
@@ -62,11 +77,11 @@ export default function AssistantPage() {
 
       const { data: notesData } = await supabase.from('notes').select('id, title').eq('user_id', user.id).order('updated_at', { ascending: false });
       const { data: vaultData } = await supabase.from('vault_files').select('id, filename, file_url').eq('user_id', user.id).order('created_at', { ascending: false });
-      
+
       const docs: {type: string, id: string, label: string, url?: string}[] = [];
       if (notesData) notesData.forEach(n => docs.push({ type: 'note', id: n.id, label: n.title }));
       if (vaultData) vaultData.forEach(v => docs.push({ type: 'pdf', id: v.id, label: v.filename, url: v.file_url }));
-      
+
       setAvailableDocs(docs);
     };
     fetchDocs();
@@ -95,24 +110,35 @@ export default function AssistantPage() {
     } else if (lastWord.startsWith('/')) {
       setShowCommands(true);
       setShowMentions(false);
+      setShowTools(false);
+      setFilterText(lastWord.slice(1).toLowerCase());
+      setSelectedIndex(0);
+    } else if (lastWord.startsWith('#')) {
+      setShowTools(true);
+      setShowMentions(false);
+      setShowCommands(false);
       setFilterText(lastWord.slice(1).toLowerCase());
       setSelectedIndex(0);
     } else {
       setShowMentions(false);
       setShowCommands(false);
+      setShowTools(false);
     }
   }, [input]);
 
-  const filteredDocs = availableDocs.filter(d => d.label.toLowerCase().includes(filterText)).slice(0, 5);
-  const filteredCommands = COMMANDS.filter(c => c.label.toLowerCase().includes(filterText)).slice(0, 5);
+  const filteredDocs = availableDocs.filter(d => d && d.label && d.label.toLowerCase().includes(filterText)).slice(0, 5);
+  const filteredCommands = COMMANDS.filter(c => c && c.label && c.label.toLowerCase().includes(filterText)).slice(0, 5);
+  const filteredTools = TOOL_COMMANDS.filter(t => t && t.label && t.label.toLowerCase().includes(filterText)).slice(0, 5);
 
   const insertCompletion = (text: string) => {
     const words = input.split(' ');
     words.pop();
     words.push(text + " ");
     setInput(words.join(' '));
+    setInput(words.join(' '));
     setShowMentions(false);
     setShowCommands(false);
+    setShowTools(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -126,6 +152,11 @@ export default function AssistantPage() {
       if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length); }
       if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); insertCompletion(filteredCommands[selectedIndex].label); }
       if (e.key === 'Escape') { e.preventDefault(); setShowCommands(false); }
+    } else if (showTools && filteredTools.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(prev => (prev + 1) % filteredTools.length); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(prev => (prev - 1 + filteredTools.length) % filteredTools.length); }
+      if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); insertCompletion(filteredTools[selectedIndex].label); }
+      if (e.key === 'Escape') { e.preventDefault(); setShowTools(false); }
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -141,25 +172,160 @@ export default function AssistantPage() {
     setActiveContext([]);
   };
 
+  const handleToolExecution = async (toolId: string, fullInput: string, docs: any[]) => {
+    setIsTyping(true);
+    const toastId = toast.loading(`Executing ${toolId}...`);
+
+    try {
+      if (docs.length === 0 && toolId !== 'image-to-pdf') {
+        throw new Error("Please mention a file using @ to process it.");
+      }
+
+      let resultBlob: Blob | null = null;
+      let filename = "processed_document.pdf";
+
+      if (toolId === 'compress-pdf') {
+        const doc = docs[0];
+        const res = await fetch(doc.url);
+        const arrayBuffer = await res.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const compressedBytes = await pdfDoc.save({ useObjectStreams: true });
+        resultBlob = new Blob([compressedBytes as any], { type: 'application/pdf' });
+        filename = `compressed_${doc.label}`;
+      } else if (toolId === 'merge-pdf') {
+        const mergedPdf = await PDFDocument.create();
+        for (const doc of docs) {
+          if (!doc.url) continue;
+          const res = await fetch(doc.url);
+          const arrayBuffer = await res.arrayBuffer();
+          const pdf = await PDFDocument.load(arrayBuffer);
+          const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+          pages.forEach(p => mergedPdf.addPage(p));
+        }
+        const mergedBytes = await mergedPdf.save();
+        resultBlob = new Blob([mergedBytes as any], { type: 'application/pdf' });
+        filename = `merged_${docs.length}_docs.pdf`;
+      } else if (toolId === 'edit-pdf') {
+        const doc = docs[0];
+        const res = await fetch(doc.url);
+        const arrayBuffer = await res.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+        const lowerInput = fullInput.toLowerCase();
+        let indices = pdfDoc.getPageIndices();
+
+        // Simple "Smart" Parsing
+        if (lowerInput.includes('delete page')) {
+          const pageMatch = lowerInput.match(/delete page (\d+)/);
+          if (pageMatch) {
+            const pageNum = parseInt(pageMatch[1]) - 1;
+            if (pageNum >= 0 && pageNum < indices.length) {
+              pdfDoc.removePage(pageNum);
+              toast.info(`Deleted page ${pageNum + 1}`);
+            }
+          }
+        } else if (lowerInput.includes('swap page')) {
+          const swapMatch = lowerInput.match(/swap page (\d+) with (\d+)/) || lowerInput.match(/swap page (\d+) and (\d+)/);
+          if (swapMatch) {
+            const p1 = parseInt(swapMatch[1]) - 1;
+            const p2 = parseInt(swapMatch[2]) - 1;
+            if (p1 >= 0 && p1 < indices.length && p2 >= 0 && p2 < indices.length) {
+              // Re-order by copying all and re-inserting
+              // Simpler swap if not deleting:
+              const pages = await pdfDoc.save();
+              const newPdf = await PDFDocument.load(pages);
+              // Implementation of real swap logic
+              const pageIndices = newPdf.getPageIndices();
+              [pageIndices[p1], pageIndices[p2]] = [pageIndices[p2], pageIndices[p1]];
+
+              const finalPdf = await PDFDocument.create();
+              const sourcePdf = await PDFDocument.load(pages);
+              const copiedPages = await finalPdf.copyPages(sourcePdf, pageIndices);
+              copiedPages.forEach(p => finalPdf.addPage(p));
+              const finalBytes = await finalPdf.save();
+              resultBlob = new Blob([finalBytes as any], { type: 'application/pdf' });
+              filename = `edited_${doc.label}`;
+            }
+          }
+        }
+
+        if (!resultBlob) {
+          const editedBytes = await pdfDoc.save();
+          resultBlob = new Blob([editedBytes as any], { type: 'application/pdf' });
+          filename = `edited_${doc.label}`;
+        }
+      } else if (toolId === 'word-to-pdf') {
+        const doc = docs[0];
+        const res = await fetch(doc.url);
+        const arrayBuffer = await res.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+
+        const newPdf = await PDFDocument.create();
+        const page = newPdf.addPage([600, 800]);
+        page.drawText(result.value.replace(/<[^>]*>/g, '').slice(0, 2000), { x: 50, y: 750, size: 10 });
+
+        const pdfBytes = await newPdf.save();
+        resultBlob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+        filename = `${doc.label.split('.')[0]}.pdf`;
+      }
+
+      if (resultBlob) {
+        const reader = new FileReader();
+        reader.readAsDataURL(resultBlob);
+        reader.onloadend = () => {
+          const base64data = reader.result;
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: JSON.stringify({
+              type: 'tool_result',
+              tool: toolId,
+              filename: filename,
+              data: base64data
+            })
+          }]);
+        };
+        toast.success("Task completed!", { id: toastId });
+      } else {
+        throw new Error("Tool logic not fully implemented yet.");
+      }
+    } catch (err: any) {
+      toast.error(err.message, { id: toastId });
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: `Error: ${err.message}` }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
-    
+
     const explicitlyMentioned = getContextDocsForInput(input);
     const updatedContext = [...activeContext];
-    
+
     explicitlyMentioned.forEach(doc => {
       if (!updatedContext.some(d => d.id === doc.id)) {
         updatedContext.push(doc);
       }
     });
-    
+
     setActiveContext(updatedContext);
 
     const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: input };
     const newMessages = [...messages, newUserMsg];
-    
+
     setMessages(newMessages);
     setInput("");
+
+    // Check for Tool Commands (#)
+    if (input.startsWith('#')) {
+      const toolCmd = TOOL_COMMANDS.find(t => input.startsWith(t.label));
+      if (toolCmd) {
+        handleToolExecution(toolCmd.id, input, explicitlyMentioned);
+        return;
+      }
+    }
+
     setIsTyping(true);
 
     try {
@@ -169,7 +335,7 @@ export default function AssistantPage() {
         body: JSON.stringify({ messages: newMessages, contextDocs: updatedContext })
       });
       const data = await res.json();
-      
+
       if (data.reply) {
         setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "assistant", content: typeof data.reply === 'string' ? data.reply : JSON.stringify(data.reply) }]);
       } else {
@@ -213,8 +379,8 @@ export default function AssistantPage() {
               const key = `${msgId}-${i}`;
               const isRevealed = revealedCards[key];
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   onClick={() => toggleCard(msgId, i)}
                   className="cursor-pointer relative bg-neutral-900 border border-neutral-800 p-4 rounded-xl shadow-sm hover:border-neutral-700 transition-colors"
                 >
@@ -244,7 +410,7 @@ export default function AssistantPage() {
               </div>
             ))}
             <div className="flex justify-end pt-2">
-              <button 
+              <button
                 onClick={async () => {
                   const toastId = toast.loading("Saving to Notes...");
                   try {
@@ -277,7 +443,7 @@ export default function AssistantPage() {
       if (parsed.type === 'save_note') {
          return (
           <div className="w-full mt-2 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-             <div 
+             <div
                className="text-sm text-indigo-100 mb-4 markdown-preview prose prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-indigo-300 prose-li:my-0.5 prose-strong:text-white max-w-none"
                dangerouslySetInnerHTML={{ __html: parseMarkdownToHTML(parsed.explanation || "I've generated a detailed explanation for this topic.") }}
              />
@@ -286,7 +452,7 @@ export default function AssistantPage() {
                <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 p-3 rounded-lg overflow-hidden shadow-inner">
                   <FileText size={16} className="text-neutral-500 shrink-0" />
                   <div className="text-sm text-white font-medium truncate flex-1">{parsed.filename || "AI_Generated_Note"}</div>
-                  <button 
+                  <button
                     onClick={async () => {
                       const toastId = toast.loading("Saving to Notes...");
                       try {
@@ -312,6 +478,80 @@ export default function AssistantPage() {
           </div>
          );
       }
+      if (parsed.type === 'tool_result') {
+        return (
+          <div className="w-full mt-2 p-5 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] pointer-events-none" />
+
+            <div className="flex items-center gap-4 mb-6 relative">
+              <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner">
+                <FileBox size={24} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-indigo-400 uppercase tracking-tighter mb-1">Task Completed</div>
+                <h3 className="text-sm font-semibold text-white truncate max-w-[200px]">{parsed.filename}</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 relative">
+              <button
+                onClick={async () => {
+                  const toastId = toast.loading("Saving to Vault...");
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Please login");
+
+                    const res = await fetch(parsed.data);
+                    const blob = await res.blob();
+                    const file = new File([blob], parsed.filename, { type: blob.type });
+
+                    const filePath = `${user.id}/${Date.now()}_${parsed.filename}`;
+                    const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage.from('vault_files').getPublicUrl(filePath);
+                    const { data: vaultData, error: dbError } = await supabase.from('vault_files').insert({
+                      user_id: user.id,
+                      filename: parsed.filename,
+                      file_format: parsed.filename.split('.').pop()?.toLowerCase() || 'pdf',
+                      file_url: publicUrl,
+                    }).select().single();
+
+                    if (dbError) throw dbError;
+                    if (vaultData) {
+                      setAvailableDocs(prev => [{
+                        type: 'pdf',
+                        id: vaultData.id,
+                        label: vaultData.filename,
+                        url: vaultData.file_url
+                      }, ...prev]);
+                    }
+
+                    toast.success("Saved to Vault!", { id: toastId });
+                  } catch (e: any) {
+                    toast.error(e.message, { id: toastId });
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-all border border-neutral-700 shadow-lg group"
+              >
+                <Save size={14} className="group-hover:scale-110 transition-transform" /> Save to Vault
+              </button>
+
+              <button
+                onClick={async () => {
+                  const res = await fetch(parsed.data);
+                  const blob = await res.blob();
+                  saveAs(blob, parsed.filename);
+                  toast.success("Downloaded!");
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-xl text-xs font-bold transition-all shadow-lg group"
+              >
+                <FileText size={14} className="group-hover:scale-110 transition-transform" /> Download
+              </button>
+            </div>
+          </div>
+        );
+      }
       return <pre className="whitespace-pre-wrap font-sans text-sm">{JSON.stringify(parsed, null, 2)}</pre>;
     } catch (e) {
       // Not JSON, just standard Markdown/Text
@@ -327,12 +567,12 @@ export default function AssistantPage() {
           <h1 className="text-2xl font-semibold text-neutral-400">Orbit Study Assistant</h1>
         </div>
       )}
-      
+
       {/* Chat Messages */}
       <div className="flex-1 w-full overflow-y-auto relative space-y-8 pb-10 pt-8 z-10 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {messages.length > 0 && (
           <div className="absolute top-8 right-0 md:right-2 z-20">
-            <button 
+            <button
               onClick={clearChat}
               className="text-neutral-400 hover:text-red-500 transition-colors flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg"
             >
@@ -341,7 +581,7 @@ export default function AssistantPage() {
           </div>
         )}
         {messages.map((msg, i) => (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             key={msg.id}
@@ -367,9 +607,9 @@ export default function AssistantPage() {
             </div>
           </motion.div>
         ))}
-        
+
         {isTyping && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex w-full justify-start"
@@ -393,8 +633,8 @@ export default function AssistantPage() {
       <div className="w-full bg-black py-6 mt-auto z-20 relative">
         {/* Autocomplete Dropdown */}
         <AnimatePresence>
-          {(showMentions || showCommands) && (
-            <motion.div 
+          {(showMentions || showCommands || showTools) && (
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -407,7 +647,7 @@ export default function AssistantPage() {
                     <span className="bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">Tab</span>
                   </div>
                   {filteredDocs.length > 0 ? filteredDocs.map((doc, i) => (
-                    <div 
+                    <div
                       key={doc.id}
                       onClick={() => insertCompletion(`@${doc.label}`)}
                       className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
@@ -427,7 +667,7 @@ export default function AssistantPage() {
                     <span className="bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">Tab</span>
                   </div>
                   {filteredCommands.length > 0 ? filteredCommands.map((cmd, i) => (
-                    <div 
+                    <div
                       key={cmd.id}
                       onClick={() => insertCompletion(cmd.label)}
                       className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/20 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
@@ -441,21 +681,89 @@ export default function AssistantPage() {
                   )) : null}
                 </div>
               )}
+              {showTools && (
+                <div className="p-2">
+                  <div className="px-3 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wider flex justify-between">
+                    <span>Document Tools</span>
+                    <span className="bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">Tab</span>
+                  </div>
+                  {filteredTools.length > 0 ? filteredTools.map((tool, i) => (
+                    <div
+                      key={tool.id}
+                      onClick={() => insertCompletion(tool.label)}
+                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                    >
+                      <Command size={16} className={i === selectedIndex ? "text-indigo-400" : "text-neutral-500"} />
+                      <div className="flex flex-col items-start min-w-0">
+                        <span className="font-semibold text-sm leading-none">{tool.label}</span>
+                        <span className="text-xs text-neutral-500 mt-1 line-clamp-1 truncate max-w-full block">{tool.desc}</span>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="px-3 py-4 text-center text-sm text-neutral-500">No matching tools found.</div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className="relative flex flex-col w-full bg-neutral-900 border border-neutral-800 focus-within:border-neutral-600 transition-colors rounded-2xl p-2 shadow-2xl">
           <div className="flex items-end w-full">
-            <textarea 
+            <input
+              type="file"
+              className="hidden"
+              id="assistant-upload"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                const toastId = toast.loading("Preparing file...");
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) throw new Error("Please login");
+
+                  const filePath = `${user.id}/${Date.now()}_${file.name}`;
+                  const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
+                  if (uploadError) throw uploadError;
+
+                  const { data: { publicUrl } } = supabase.storage.from('vault_files').getPublicUrl(filePath);
+                  const { data: vaultData } = await supabase.from('vault_files').insert({
+                    user_id: user.id,
+                    filename: file.name,
+                    file_url: publicUrl,
+                  }).select().single();
+
+                  if (vaultData) {
+                    setAvailableDocs(prev => [{
+                      type: 'pdf',
+                      id: vaultData.id,
+                      label: vaultData.filename,
+                      url: vaultData.file_url
+                    }, ...prev]);
+                    setInput(prev => prev + ` @${file.name} `);
+                    toast.success("File ready in vault!", { id: toastId });
+                  }
+                } catch (err: any) {
+                  toast.error(err.message, { id: toastId });
+                }
+              }}
+            />
+            <label
+              htmlFor="assistant-upload"
+              className="p-3 mr-1 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center"
+            >
+              <Upload size={18} />
+            </label>
+            <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything or use '/' for commands, '@' for notes..."
+              placeholder="Ask anything or use '/' for commands, '@' for notes, '#' for PDF tools..."
               className="flex-1 bg-transparent border-none outline-none text-white text-sm px-4 py-3 placeholder-neutral-500 resize-none min-h-[44px] max-h-32 overflow-y-auto leading-relaxed"
               rows={1}
             />
-            <button 
+            <button
               onClick={handleSend}
               className="p-3 ml-2 bg-white text-black hover:bg-neutral-200 transition-colors rounded-xl flex items-center justify-center disabled:opacity-50 shrink-0 h-[44px] w-[44px]"
               disabled={!input.trim() || isTyping}
