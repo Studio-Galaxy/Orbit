@@ -16,6 +16,7 @@
     "@tiptap/react": "^3.23.4",
     "@tiptap/starter-kit": "^3.23.4",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@vercel/analytics": "^2.0.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.38.0",
     "jszip": "^3.10.1",
