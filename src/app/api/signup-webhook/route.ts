@@ -3,35 +3,46 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+export async function GET() {
+  return NextResponse.json({
+    message: "Signup webhook route is working",
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const user = body.record;
+    console.log("FULL BODY:", body);
 
-    console.log("New signup:", user);
+    const user = body.record || body.user || body;
 
-    await resend.emails.send({
+    const response = await resend.emails.send({
       from: "Orbit <onboarding@resend.dev>",
       to: "studiogalaxy.org@gmail.com",
-      subject: "🚀 New Orbit User Signup",
+      subject: "🚀 New Orbit User SignUp",
       html: `
         <h2>New Orbit User</h2>
-        <p><strong>Email:</strong> ${user.email}</p>
-        <p><strong>User ID:</strong> ${user.id}</p>
-        <p><strong>Created:</strong> ${user.created_at}</p>
+        <p>Email: ${user.email}</p>
+        <p>ID: ${user.id}</p>
       `,
     });
+
+    console.log("RESEND RESPONSE:", response);
 
     return NextResponse.json({
       success: true,
     });
   } catch (error) {
-    console.error(error);
+    console.error("ERROR:", error);
 
     return NextResponse.json(
-      { error: "Something went wrong" },
-      { status: 500 }
+      {
+        error: String(error),
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
