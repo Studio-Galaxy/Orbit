@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -34,6 +35,7 @@ export default function RootLayout({
           </div>
         </div>
         <Toaster theme="dark" position="bottom-right" />
+        <Analytics />
       </body>
     </html>
   );
