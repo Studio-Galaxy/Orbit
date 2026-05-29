@@ -219,7 +219,7 @@ export default function VaultPage() {
                </label>
             </div>
           ) : (
-            <div className={`overflow-y-auto pb-12 pt-4 custom-scrollbar ${viewMode === 'grid' ? `grid gap-6 ${activeVaultFile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}` : 'flex flex-col gap-2'}`}>
+            <div className={`overflow-y-auto pb-12 pt-4 no-scrollbar ${viewMode === 'grid' ? `grid gap-6 ${activeVaultFile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}` : 'flex flex-col gap-2'}`}>
                {vaultFiles.map((file) => {
                  const ext = file.file_format?.toLowerCase() || 'bin';
                  const isActive = activeVaultFile?.id === file.id;

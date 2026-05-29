@@ -316,3 +316,12 @@ pre code {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #404040;
 }
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

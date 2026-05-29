@@ -111,7 +111,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 md:p-8 lg:p-12 h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar relative">
+    <div className="w-full max-w-4xl mx-auto p-6 md:p-8 lg:p-12 h-[calc(100vh-4rem)] overflow-y-auto no-scrollbar relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
