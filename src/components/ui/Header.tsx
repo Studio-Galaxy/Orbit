@@ -113,10 +113,10 @@ export function Header() {
                   </div>
                   <ArrowRight size={16} className="text-neutral-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all" />
                 </button>
-                <button onClick={() => executeCommand('/pdfs')} className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-800 rounded-xl transition-colors group">
+                <button onClick={() => executeCommand('/vault')} className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-800 rounded-xl transition-colors group">
                   <div className="flex items-center gap-3 text-neutral-300 group-hover:text-white">
                     <Command size={18} className="text-neutral-500 group-hover:text-indigo-400" />
-                    <span>Analyze PDF document</span>
+                    <span>Open Document Vault</span>
                   </div>
                   <ArrowRight size={16} className="text-neutral-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all" />
                 </button>
