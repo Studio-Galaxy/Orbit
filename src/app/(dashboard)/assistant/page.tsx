@@ -17,7 +17,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-
+import { marked } from 'marked';
 type Message = {
   id: string;
   role: "user" | "assistant";
@@ -458,15 +458,20 @@ export default function AssistantPage() {
                   try {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
-                      const docContent = parsed.data.flatMap((q: any, i: number) => [
-                        { type: 'paragraph', content: [{ type: 'text', text: `Q${i+1}: ${q.question}`, marks: [{ type: "bold" }] }] },
-                        { type: 'paragraph', content: [{ type: 'text', text: `Expected Answer: ${q.answer}` }] },
-                        { type: 'paragraph' }
-                      ]);
+                      const markdown = parsed.data.map((q: any, i: number) => {
+                        return `### Q${i+1}: ${q.question}\n\n**Expected Answer:** ${q.answer}\n\n`;
+                      }).join('\n');
+                      let htmlContent = marked.parse(markdown);
+                      
+                      // Convert $...$ to Tiptap-friendly math spans
+                      if (typeof htmlContent === 'string') {
+                        htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
+                      }
+
                       await supabase.from('notes').insert({
                         user_id: user.id,
                         title: `Viva Questions for ${parsed.filename || 'Notes'}`,
-                        content: JSON.stringify({ type: 'doc', content: docContent })
+                        content: htmlContent
                       });
                       toast.success("Saved to Notes", { id: toastId });
                     }
@@ -508,10 +513,18 @@ export default function AssistantPage() {
                       try {
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) {
+                          const markdown = parsed.content || parsed.explanation || "";
+                          let htmlContent = marked.parse(markdown);
+                          
+                          // Convert $...$ to Tiptap-friendly math spans
+                          if (typeof htmlContent === 'string') {
+                            htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
+                          }
+
                           await supabase.from('notes').insert({
                             user_id: user.id,
                             title: parsed.filename || "AI Generated Note",
-                            content: parsed.content || parsed.explanation
+                            content: htmlContent
                           });
                           toast.success("Saved to Notes", { id: toastId });
                         }

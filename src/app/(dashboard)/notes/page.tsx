@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2, Trash2, PanelLeftClose, PanelLeft, Menu, Upload, ChevronRight, ArrowLeft, Maximize, Minimize } from "lucide-react";
@@ -185,7 +185,7 @@ export default function NotesPage() {
     }
   };
 
-  const debouncedSave = useCallback(
+  const debouncedSaveRaw = useCallback(
     async (id: string, title: string, content: any) => {
       if (!user) return;
       setIsSaving(true);
@@ -204,6 +204,24 @@ export default function NotesPage() {
     },
     [user]
   );
+
+  const debouncedSaveRef = useRef<any>(null);
+  
+  useEffect(() => {
+    import('lodash.debounce').then((debounce) => {
+      debouncedSaveRef.current = debounce.default(debouncedSaveRaw, 1000);
+    });
+    return () => {
+      debouncedSaveRef.current?.cancel();
+    };
+  }, [debouncedSaveRaw]);
+
+  const debouncedSave = (id: string, title: string, content: any) => {
+    if (debouncedSaveRef.current) {
+      setIsSaving(true); // Show saving state immediately for better UX
+      debouncedSaveRef.current(id, title, content);
+    }
+  };
 
   const confirmDeleteNote = (id: string) => {
     setNoteToDelete(id);
