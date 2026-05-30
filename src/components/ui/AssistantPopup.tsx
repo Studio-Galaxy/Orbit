@@ -52,9 +52,13 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'mobile' | 'mac'>('mobile');
   const supabase = createClient();
 
   useEffect(() => {
+    const viewPref = localStorage.getItem("orbit-assistant-view");
+    if (viewPref === 'mac') setViewMode('mac');
+
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUser(data.user);
     });
@@ -213,11 +217,23 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.9, y: 40 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 40 }}
-        className="relative w-full max-w-sm aspect-[9/16] h-[85vh] bg-[#050505] border border-neutral-800/80 rounded-[3rem] shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto"
+        className={`relative w-full transition-all duration-500 ease-out ${
+          viewMode === 'mac' 
+            ? "max-w-5xl aspect-[16/10] h-[80vh] rounded-3xl" 
+            : "max-w-sm aspect-[9/16] h-[85vh] rounded-[3rem]"
+        } bg-[#050505] border border-neutral-800/80 shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto`}
       >
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-neutral-900 rounded-full" />
+        {viewMode === 'mobile' ? (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-neutral-900 rounded-full" />
+        ) : (
+          <div className="absolute top-6 left-6 flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f56] opacity-80" />
+            <div className="w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80" />
+            <div className="w-3 h-3 rounded-full bg-[#27c93f] opacity-80" />
+          </div>
+        )}
 
-        <div className="px-6 pt-10 pb-4 flex items-center justify-between">
+        <div className={`px-6 pb-4 flex items-center justify-between ${viewMode === 'mac' ? 'pt-6 mt-10' : 'pt-10'}`}>
           <div className="flex items-center gap-3">
              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
                 <Sparkles size={16} />
@@ -240,7 +256,7 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className={`flex-1 overflow-y-auto px-6 py-4 space-y-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${viewMode === 'mac' ? 'max-w-6xl mx-auto w-full' : ''}`}>
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end text-right' : 'items-start text-left'}`}>
                <div className={`flex items-center gap-2 opacity-30 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -270,7 +286,7 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
           <div ref={messagesEndRef} className="h-20" />
         </div>
 
-        <div className="p-6 pb-2 bg-gradient-to-t from-black via-black to-transparent mt-auto">
+        <div className={`p-6 pb-2 bg-gradient-to-t from-black via-black to-transparent mt-auto ${viewMode === 'mac' ? 'max-w-4xl mx-auto w-full' : ''}`}>
           <div className="relative flex items-center bg-[#111] border border-neutral-800 rounded-2xl transition-all shadow-inner overflow-hidden pr-2">
             <textarea
               autoFocus

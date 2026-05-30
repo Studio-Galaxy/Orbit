@@ -24,6 +24,7 @@ export default function SettingsPage() {
   
   // Preference states
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [assistantView, setAssistantView] = useState<'mobile' | 'mac'>('mobile');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -45,6 +46,9 @@ export default function SettingsPage() {
     // Load preferences
     const prefs = localStorage.getItem("orbit-notifications");
     if (prefs === "true") setNotificationsEnabled(true);
+    
+    const viewPref = localStorage.getItem("orbit-assistant-view");
+    if (viewPref === "mac") setAssistantView('mac');
   }, []);
 
   const handleLogout = async () => {
@@ -104,6 +108,13 @@ export default function SettingsPage() {
     setNotificationsEnabled(newState);
     localStorage.setItem("orbit-notifications", newState.toString());
     toast.success(`Notifications ${newState ? 'enabled' : 'disabled'}`);
+  };
+
+  const toggleAssistantView = () => {
+    const nextView = assistantView === 'mobile' ? 'mac' : 'mobile';
+    setAssistantView(nextView);
+    localStorage.setItem("orbit-assistant-view", nextView);
+    toast.success(`Assistant view set to ${nextView === 'mobile' ? 'Phone' : 'MacBook'}`);
   };
 
   if (loading) {
@@ -204,7 +215,7 @@ export default function SettingsPage() {
               </div>
               <div 
                 onClick={toggleNotifications}
-                className="flex items-center justify-between p-4 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
+                className="flex items-center justify-between p-4 border-b border-neutral-800/80 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
               >
                 <div className="flex items-center gap-4">
                   <Bell size={18} className="text-neutral-500" />
@@ -216,6 +227,24 @@ export default function SettingsPage() {
                 {/* Dynamic toggle */}
                 <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${notificationsEnabled ? 'bg-indigo-500 justify-end' : 'bg-neutral-700 justify-start'}`}>
                   <div className="w-4 h-4 bg-white rounded-full transition-transform"></div>
+                </div>
+              </div>
+
+              <div 
+                onClick={toggleAssistantView}
+                className="flex items-center justify-between p-4 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
+              >
+                <div className="flex items-center gap-4">
+                  <Monitor size={18} className="text-neutral-500" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Assistant Layout</div>
+                    <div className="text-xs text-neutral-500">Switch between Phone and MacBook view</div>
+                  </div>
+                </div>
+                {/* Dynamic toggle */}
+                <div className="flex items-center gap-2 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
+                  <div className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${assistantView === 'mobile' ? 'bg-white text-black' : 'text-neutral-500'}`}>Phone</div>
+                  <div className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${assistantView === 'mac' ? 'bg-white text-black' : 'text-neutral-500'}`}>Mac</div>
                 </div>
               </div>
             </div>
