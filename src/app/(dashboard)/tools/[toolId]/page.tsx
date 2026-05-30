@@ -466,10 +466,10 @@ export default function ToolExecutionPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 relative z-10 flex flex-col md:flex-row gap-8 overflow-y-auto max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-10 relative z-10 flex flex-col md:flex-row gap-8 overflow-y-auto max-w-7xl mx-auto w-full h-full">
 
         {/* Dropzone Column */}
-        <div className="flex-1 flex flex-col gap-4 h-[calc(100vh-14rem)] max-h-[600px] min-h-[750px] pb-10">
+        <div className="flex-1 flex flex-col gap-4 min-h-[500px] md:h-[calc(100vh-14rem)] md:max-h-[600px] md:min-h-[750px] pb-10">
           <div
             className={`flex-1 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden ${isDragActive
               ? "border-blue-500 bg-blue-500/10 scale-[1.01]"

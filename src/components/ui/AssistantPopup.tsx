@@ -1,0 +1,307 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Send, X, Trash2, Command, MessageSquare, Loader2, Minus, User, Save } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
+type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+const CodeBlock = ({ className, children, ...props }: any) => {
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+  const inline = !className;
+
+  return !inline ? (
+    <div className="rounded-xl overflow-hidden border border-neutral-800 my-4 shadow-lg">
+      <SyntaxHighlighter
+        language={language}
+        style={oneDark}
+        customStyle={{
+          margin: 0,
+          padding: '1rem',
+          backgroundColor: '#0a0a0a',
+          fontSize: '12px',
+        }}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    </div>
+  ) : (
+    <code className="bg-neutral-800 text-indigo-300 px-1.5 py-0.5 rounded text-[12px] font-medium" {...props}>
+      {children}
+    </code>
+  );
+};
+
+export function AssistantPopup({ onClose }: { onClose: () => void }) {
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUser(data.user);
+    });
+
+    const saved = localStorage.getItem("orbit-assistant-popup-messages");
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (e) {
+        setMessages([{ id: "1", role: "assistant", content: "Hi! I'm your Orbit Assistant. How can I help you today?" }]);
+      }
+    } else {
+      setMessages([{ id: "1", role: "assistant", content: "Hi! I'm your Orbit Assistant. How can I help you today?" }]);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("orbit-assistant-popup-messages", JSON.stringify(messages));
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: input };
+    const newMessages = [...messages, newUserMsg];
+    setMessages(newMessages);
+    setInput("");
+    setIsTyping(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages }),
+      });
+      const data = await res.json();
+
+      if (data.reply) {
+        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "assistant", content: typeof data.reply === 'string' ? data.reply : JSON.stringify(data.reply) }]);
+      } else {
+        throw new Error(data.error || "No reply returned");
+      }
+    } catch (error: any) {
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "assistant", content: "Sorry, I ran into an error." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const saveNoteToDatabase = async (parsed: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { error } = await supabase.from('notes').insert({
+      user_id: user.id,
+      title: parsed.filename || "AI Generated Note",
+      content: (parsed.content || parsed.explanation || "").replace(/\n/g, '<br/>')
+    });
+
+    if (error) throw error;
+  };
+
+  const renderMessageContent = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+
+      if (parsed.type === 'save_note' || parsed.explanation || parsed.content) {
+        return (
+          <div className="w-full flex flex-col gap-4">
+            <div className="prose prose-invert prose-p:leading-relaxed prose-headings:text-indigo-400 prose-strong:text-white max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{ code: CodeBlock }}
+              >
+                {parsed.explanation || parsed.content || ""}
+              </ReactMarkdown>
+            </div>
+
+            <div className="flex items-center gap-3 pt-4 border-t border-neutral-900">
+               <div className="flex-1">
+                  <div className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">Suggested Action</div>
+                  <div className="text-xs text-neutral-400 font-medium truncate">{parsed.filename || "Study Note"}</div>
+               </div>
+               <button
+                onClick={() => {
+                  toast.promise(saveNoteToDatabase(parsed), {
+                    loading: 'Saving to your notes...',
+                    success: 'Note saved successfully!',
+                    error: 'Failed to save note'
+                  });
+                }}
+                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-xs font-bold text-indigo-400 transition-all flex items-center gap-2 shadow-sm"
+               >
+                 <Save size={12} /> Save to Notes
+               </button>
+            </div>
+          </div>
+        );
+      }
+
+      if (parsed.type === 'flashcards' && Array.isArray(parsed.data)) {
+        return (
+          <div className="w-full space-y-4">
+            <div className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-2">Generated Flashcards</div>
+            {parsed.data.map((card: any, i: number) => (
+              <div key={i} className="bg-neutral-950 border border-neutral-800/50 p-4 rounded-2xl">
+                <div className="text-xs font-bold text-neutral-500 mb-2 uppercase tracking-tighter">Question</div>
+                <div className="text-[15px] text-white font-medium mb-4">{card.question}</div>
+                <div className="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-tighter">Answer</div>
+                <div className="text-[14px] text-neutral-400">{card.answer}</div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-indigo-400">
+          <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={{ code: CodeBlock }}>
+            {content}
+          </ReactMarkdown>
+        </div>
+      );
+    } catch (e) {
+      return (
+        <div className="prose prose-invert prose-p:leading-relaxed prose-headings:text-indigo-400 prose-strong:text-white max-w-none">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={{ code: CodeBlock }}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
+      );
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([{ id: Date.now().toString(), role: "assistant", content: "Session reset. What's on your mind?" }]);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/40 backdrop-blur-md pointer-events-auto"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 40 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 40 }}
+        className="relative w-full max-w-sm aspect-[9/16] h-[85vh] bg-[#050505] border border-neutral-800/80 rounded-[3rem] shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto"
+      >
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-neutral-900 rounded-full" />
+
+        <div className="px-6 pt-10 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                <Sparkles size={16} />
+             </div>
+             <div>
+                <h3 className="text-sm font-bold text-white tracking-tight">Orbit AI</h3>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Active</span>
+                </div>
+             </div>
+          </div>
+          <div className="flex items-center gap-1">
+             <button onClick={clearChat} className="p-2 text-neutral-600 hover:text-white transition-colors">
+                <Trash2 size={16} />
+             </button>
+             <button onClick={onClose} className="p-2 text-neutral-600 hover:text-white transition-colors">
+                <X size={18} />
+             </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end text-right' : 'items-start text-left'}`}>
+               <div className={`flex items-center gap-2 opacity-30 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                  {msg.role === 'user' ? <User size={10} className="text-white" /> : <Sparkles size={10} className="text-indigo-400" />}
+                  <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500">{msg.role}</span>
+               </div>
+               <div className="w-full">
+                  {renderMessageContent(msg.content)}
+               </div>
+               <div className={`h-[1px] w-4 bg-neutral-900 mt-2 ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`} />
+            </div>
+          ))}
+
+          {isTyping && (
+             <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 opacity-30">
+                   <Sparkles size={10} className="text-indigo-400" />
+                   <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500">assistant</span>
+                </div>
+                <div className="flex gap-1.5 items-center pl-1">
+                   <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                   <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                   <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
+                </div>
+             </div>
+          )}
+          <div ref={messagesEndRef} className="h-20" />
+        </div>
+
+        <div className="p-6 pb-2 bg-gradient-to-t from-black via-black to-transparent mt-auto">
+          <div className="relative flex items-center bg-[#111] border border-neutral-800 rounded-2xl transition-all shadow-inner overflow-hidden pr-2">
+            <textarea
+              autoFocus
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                 if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                 }
+              }}
+              placeholder="Ask anything..."
+              className="flex-1 bg-transparent px-4 py-4 text-sm text-white outline-none placeholder:text-neutral-700 resize-none max-h-32"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isTyping}
+              className="w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all disabled:opacity-30 flex-shrink-0 shadow-lg"
+            >
+              <Send size={16} />
+            </button>
+          </div>
+          <div className="mt-2 flex justify-center opacity-10 group">
+             <div className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[9px] font-black text-neutral-600 uppercase">⌘ Enter</kbd>
+                <span className="text-[9px] font-black text-neutral-700 uppercase tracking-tighter">Submit</span>
+             </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}

@@ -215,10 +215,10 @@ function NotesPageInternal() {
       <AnimatePresence initial={false}>
         {isSidebarOpen && (
           <motion.div 
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 300, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="border-r border-neutral-900 bg-black/40 hidden lg:flex flex-col h-full overscroll-contain overflow-y-auto shrink-0 z-20 backdrop-blur-md"
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0 }}
+            className="fixed inset-y-0 left-0 w-[300px] lg:relative lg:w-[300px] border-r border-neutral-900 bg-black/95 lg:bg-black/40 flex flex-col h-full overscroll-contain overflow-y-auto shrink-0 z-[60] lg:z-20 backdrop-blur-xl lg:backdrop-blur-md"
           >
             <div className="flex flex-col h-full min-w-[300px]">
               <div className="p-6 pb-2">
@@ -242,10 +242,10 @@ function NotesPageInternal() {
                   ) : notes.length === 0 ? (
                     <div className="text-center py-12 px-4 text-xs text-neutral-600">No notes found.</div>
                   ) : notes.map(note => (
-                    <button 
+                    <div 
                       key={note.id}
                       onClick={() => setActiveNote(note)}
-                      className={`w-full group p-3 rounded-2xl transition-all border text-left flex flex-col gap-1.5 ${
+                      className={`w-full group p-3 rounded-2xl transition-all border text-left flex flex-col gap-1.5 cursor-pointer ${
                         activeNoteId === note.id ? "bg-neutral-900/80 border-neutral-800" : "bg-transparent border-transparent hover:bg-neutral-900/30"
                       }`}
                     >
@@ -255,12 +255,12 @@ function NotesPageInternal() {
                       <div className="flex items-center justify-between text-[10px] text-neutral-600">
                         <span>{new Date(note.updated_at || note.created_at).toLocaleDateString()}</span>
                         {activeNoteId === note.id && (
-                          <button onClick={(e) => { e.stopPropagation(); setNoteToDelete(note.id); }} className="p-1 hover:text-red-500">
+                          <button onClick={(e) => { e.stopPropagation(); setNoteToDelete(note.id); }} className="p-1 hover:text-red-500 transition-colors">
                             <Trash2 size={10} />
                           </button>
                         )}
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -280,9 +280,9 @@ function NotesPageInternal() {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-6 min-w-0 transition-all">
-        <div className="absolute top-6 left-8 z-10 hidden lg:block">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-neutral-900/50 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded-xl transition-all border border-neutral-800 shadow-xl">
+      <div className="flex-1 w-full flex flex-col h-full bg-black overflow-y-auto relative p-4 md:p-6 min-w-0 transition-all">
+        <div className="absolute top-4 md:top-6 left-4 md:left-8 z-10">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 md:p-2.5 bg-neutral-900/50 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded-xl transition-all border border-neutral-800 shadow-xl">
             {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
           </button>
         </div>

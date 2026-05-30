@@ -213,8 +213,8 @@ function VaultPageInternal() {
   return (
     <div className="h-full w-full bg-black flex flex-col overflow-hidden relative">
       {/* Dynamic Header */}
-      <div className={`pt-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-500 ${activeVaultFile ? 'px-12' : 'px-8'}`}>
-        <div className={`flex items-center gap-4 transition-all duration-500 ${activeVaultFile ? 'opacity-0 scale-95 pointer-events-none w-0' : 'opacity-100 scale-100'}`}>
+      <div className={`pt-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-500 ${activeVaultFile ? 'px-4 md:px-12' : 'px-4 md:px-8'}`}>
+        <div className={`flex items-center gap-4 transition-all duration-500 ${activeVaultFile ? 'hidden md:flex opacity-0 scale-95 pointer-events-none w-0' : 'opacity-100 scale-100'}`}>
           <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-3">
             Vault
           </h1>
@@ -241,7 +241,7 @@ function VaultPageInternal() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* File Explorer */}
-        <div className={`flex flex-col min-w-0 transition-all duration-500 ease-in-out ${activeVaultFile ? 'w-1/2 px-12 pt-8' : 'w-full px-8'}`}>
+        <div className={`flex flex-col min-w-0 transition-all duration-500 ease-in-out ${activeVaultFile ? 'w-full md:w-1/2 px-4 md:px-12 pt-4 md:pt-8' : 'w-full px-4 md:px-8'}`}>
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="animate-spin text-neutral-800" size={48} />
@@ -358,16 +358,16 @@ function VaultPageInternal() {
         <AnimatePresence>
           {activeVaultFile && (
             <motion.div
-              initial={{ x: "100%", width: isDocFullscreen ? '100%' : `calc((100vw - ${isCollapsed ? 80 : 260}px) / 2)` }}
+              initial={{ x: "100%", width: "100%" }}
               animate={{
                 x: 0,
-                width: isDocFullscreen ? '100%' : `calc((100vw - ${isCollapsed ? 80 : 260}px) / 2)`
+                width: (isDocFullscreen || typeof window !== 'undefined' && window.innerWidth < 768) ? '100%' : `calc((100vw - ${isCollapsed ? 80 : 260}px) / 2)`
               }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className={`fixed top-0 bottom-0 right-0 flex flex-col bg-black border-l border-neutral-900 z-[100] shadow-[0_0_100px_rgba(0,0,0,1)] ${isDocFullscreen ? 'w-full z-[110]' : ''}`}
+              className={`fixed top-0 bottom-0 right-0 flex flex-col bg-black border-l border-neutral-900 z-[100] shadow-[0_0_100px_rgba(0,0,0,1)] ${isDocFullscreen || typeof window !== 'undefined' && window.innerWidth < 768 ? 'w-full z-[110]' : ''}`}
             >
-              <div className="h-16 flex items-center justify-between px-6 border-b border-neutral-900/50 bg-black/80 backdrop-blur-xl">
+              <div className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-neutral-900/50 bg-black/80 backdrop-blur-xl">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/50 flex-shrink-0">
                     <FileText size={16} />

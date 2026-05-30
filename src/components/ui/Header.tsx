@@ -13,11 +13,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { AssistantPopup } from "./AssistantPopup";
 
 type View = "main" | "notes" | "vault" | "tools";
 
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<View>("main");
   const [results, setResults] = useState<{
@@ -56,12 +58,17 @@ export function Header() {
         e.preventDefault();
         setIsSearchOpen(true);
       }
+      if (e.key === "i" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsAssistantOpen(prev => !prev);
+      }
       if (e.key === "Escape") {
         if (view !== "main") {
           setView("main");
           setSearchQuery("");
         } else {
           setIsSearchOpen(false);
+          setIsAssistantOpen(false);
         }
       }
     };
@@ -90,7 +97,7 @@ export function Header() {
         .ilike('title', `%${searchQuery}%`)
         .order('updated_at', { ascending: false })
         .limit(view === "main" ? 5 : 20);
-      
+
       const { data: filesData } = await supabase
         .from('vault_files')
         .select('id, filename, file_format')
@@ -188,44 +195,66 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black border-b border-neutral-900 border-none md:border-solid">
-        <div className="w-10 md:hidden" />
+        {/* Left Side - Space for Sidebar toggle or Logo */}
+        <div className="w-10 md:w-80 flex-shrink-0" />
 
-        <div className="flex-1 flex items-center">
+        {/* Center - Search Trigger & AI Assistant */}
+        <div className="flex-1 flex items-center justify-center gap-3">
           <div
             onClick={() => setIsSearchOpen(true)}
-            className="hidden md:flex items-center gap-2 px-4 py-2 bg-neutral-900/40 rounded-2xl text-sm text-neutral-500 border border-neutral-800/50 w-80 hover:border-neutral-700/50 transition-all cursor-pointer group"
+            className="hidden md:flex items-center gap-3 px-5 py-2.5 bg-neutral-900/40 rounded-2xl text-sm text-neutral-500 border border-neutral-800/50 w-[400px] hover:border-neutral-700 transition-all cursor-pointer group shadow-sm backdrop-blur-xl"
           >
-            <Search size={16} className="group-hover:text-indigo-400 transition-colors" />
-            <span className="font-medium">Search or ask assistant...</span>
-            <div className="ml-auto flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-300">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-300">K</kbd>
+            <Search size={16} className="group-hover:text-purple-400 transition-colors" />
+            <span className="font-medium tracking-tight">Search or ask assistant...</span>
+            <div className="ml-auto flex items-center gap-1.5 opacity-30 group-hover:opacity-100 transition-all">
+              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-400">⌘</kbd>
+              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-400">K</kbd>
             </div>
           </div>
 
           <button
-            onClick={() => setIsSearchOpen(true)}
-            className="md:hidden text-neutral-400 hover:text-white transition-colors p-2"
+            onClick={() => setIsAssistantOpen(true)}
+            className="hidden md:flex items-center gap-3 px-4 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/20 transition-all hover:border-indigo-500/40 group shadow-[0_0_15px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]"
           >
-            <Search size={20} />
+            <Sparkles size={16} className="animate-pulse group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-all">
+              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-900 rounded-md border border-neutral-800 text-neutral-400">⌘</kbd>
+              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-900 rounded-md border border-neutral-800 text-neutral-400">I</kbd>
+            </div>
           </button>
+
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="text-neutral-400 hover:text-white transition-colors p-2"
+            >
+              <Search size={20} />
+            </button>
+            <button
+              onClick={() => setIsAssistantOpen(true)}
+              className="text-indigo-400 hover:text-indigo-300 transition-colors p-2"
+            >
+              <Sparkles size={20} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="h-8 w-[1px] bg-neutral-900 hidden md:block mx-2" />
+        {/* Right Side - Actions */}
+        <div className="w-10 md:w-80 flex items-center justify-end gap-3 flex-shrink-0">
+          <div className="h-8 w-[1px] bg-neutral-900 hidden md:block mx-1" />
           <button
             onClick={() => toast.info("No notifications.")}
-            className="text-neutral-400 hover:text-white transition-colors relative p-2 rounded-xl hover:bg-neutral-900"
+            className="text-neutral-400 hover:text-white transition-colors relative p-2.5 rounded-xl hover:bg-neutral-900 transition-all"
           >
             <Bell size={20} />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-indigo-500 border-2 border-black"></span>
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-purple-500 border-2 border-black animate-pulse"></span>
           </button>
         </div>
       </header>
 
       <AnimatePresence>
         {isSearchOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -235,10 +264,10 @@ export function Header() {
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.98, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 10 }}
-              className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-800 rounded-3xl shadow-[0_32px_64px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-2xl"
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="w-full max-w-2xl bg-[#0a0a0a]/95 backdrop-blur-3xl border border-neutral-800/50 rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8)] pointer-events-auto flex flex-col"
             >
               <div className="flex items-center gap-4 px-6 py-4 border-b border-neutral-800/50">
                 <div className="flex items-center gap-2">
@@ -289,6 +318,10 @@ export function Header() {
             </motion.div>
           </div>
         )}
+
+        {isAssistantOpen && (
+          <AssistantPopup onClose={() => setIsAssistantOpen(false)} />
+        )}
       </AnimatePresence>
     </>
   );
@@ -298,9 +331,8 @@ function ResultItem({ isActive, onClick, icon, title, description, type }: any) 
   return (
     <div
       onClick={onClick}
-      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all group relative cursor-pointer ${
-        isActive ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:bg-neutral-800/40 hover:text-neutral-200"
-      }`}
+      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all group relative cursor-pointer ${isActive ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:bg-neutral-800/40 hover:text-neutral-200"
+        }`}
     >
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 flex items-center justify-center opacity-60">
