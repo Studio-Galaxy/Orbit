@@ -17,42 +17,43 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `You are an expert study assistant. Analyze the provided text and output a JSON object containing:
-1. "summary": A comprehensive summary of the text. If the text is short, provide a concise summary. If the text is long (multiple pages/topics), provide a detailed and in-depth summary outlining the key points using bullet points and adequate explanations.
-2. "flashcards": An array of objects, where each object has a "question" (string) and an "answer" (string). Generate as many highly relevant flashcards as possible from the text.
+    const prompt = `You are a high-level academic study assistant. Analyze the provided study material.
+Provide an extremely detailed, in-depth summary highlighting key concepts, arguments, and conclusions. 
+Also generate a large comprehensive set of study flashcards focused on critical terms and concepts.
 
-IMPORTANT: Your entire response must be valid JSON matching the structure:
+Your entire response MUST be a valid JSON object with the following structure:
 {
-  "summary": "...",
+  "summary": "The detailed summary text here...",
   "flashcards": [
     { "question": "...", "answer": "..." }
   ]
 }
 
-Make sure you do not wrap the JSON in markdown blocks (like \`\`\`json). Just return the raw JSON object.
+CRITICAL: Return ONLY the raw JSON. Do not include markdown code blocks (like \`\`\`json). Just the object.
 
-Text to analyze:
+Material to analyze:
 ${text}`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
-    let parsedData;
     try {
       let cleanedText = responseText.trim();
-      if (cleanedText.startsWith("\`\`\`json")) cleanedText = cleanedText.slice(7);
-      if (cleanedText.startsWith("\`\`\`")) cleanedText = cleanedText.slice(3);
-      if (cleanedText.endsWith("\`\`\`")) cleanedText = cleanedText.slice(0, -3);
+      if (cleanedText.startsWith("```json")) cleanedText = cleanedText.slice(7);
+      if (cleanedText.startsWith("```")) cleanedText = cleanedText.slice(3);
+      if (cleanedText.endsWith("```")) cleanedText = cleanedText.slice(0, -3);
       
-      parsedData = JSON.parse(cleanedText);
+      const parsedData = JSON.parse(cleanedText.trim());
+      return NextResponse.json(parsedData);
     } catch (parseError) {
-      console.error("Failed to parse Gemini output", responseText);
-      return NextResponse.json({ error: "AI response format was invalid." }, { status: 500 });
+      console.error("Gemini JSON parse error:", responseText);
+      return NextResponse.json({ 
+        error: "AI response format was invalid.",
+        raw: responseText 
+      }, { status: 500 });
     }
-
-    return NextResponse.json(parsedData);
     
   } catch (err: any) {
     console.error("Note Analysis Error:", err);

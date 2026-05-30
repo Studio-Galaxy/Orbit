@@ -6,6 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2, Trash2, PanelLeftClose, PanelLeft, Menu, Upload, ChevronRight, ArrowLeft, Maximize, Minimize } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 export default function NotesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -312,14 +317,24 @@ export default function NotesPage() {
                   <h3 className="text-xl font-bold text-white mb-4 mt-2 flex items-center gap-2"><Sparkles size={18} className="text-indigo-400" />{aiActionTitle} Result</h3>
                   <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-4">
                     {aiActionTitle === "Summary" && (
-                      <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl"><p className="text-indigo-100 text-sm leading-relaxed whitespace-pre-wrap">{aiResult.summary}</p></div>
+                      <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl prose prose-invert prose-sm max-w-none">
+                        <div className="prose-p:my-2 prose-headings:mb-3 prose-headings:mt-6 prose-strong:text-white">
+                          <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                            {aiResult.summary}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
                     )}
                     {aiActionTitle === "Flashcards" && aiResult.flashcards && (
                       <div className="space-y-3">
                         {aiResult.flashcards.map((fc: any, i: number) => (
-                          <div key={i} className="p-4 bg-neutral-800/40 border border-neutral-700/50 rounded-xl hover:border-neutral-600 transition-colors">
-                            <p className="text-sm font-medium text-white mb-2 pb-2 border-b border-neutral-700">Q: {fc.question}</p>
-                            <p className="text-sm text-neutral-400">A: {fc.answer}</p>
+                          <div key={i} className="p-4 bg-neutral-800/40 border border-neutral-700/50 rounded-xl hover:border-neutral-600 transition-colors prose prose-invert prose-sm max-w-none">
+                            <div className="text-sm font-medium text-white mb-2 pb-2 border-b border-neutral-700">
+                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`Q: ${fc.question}`}</ReactMarkdown>
+                            </div>
+                            <div className="text-sm text-neutral-400">
+                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`A: ${fc.answer}`}</ReactMarkdown>
+                            </div>
                           </div>
                         ))}
                       </div>
