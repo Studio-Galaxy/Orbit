@@ -14,6 +14,7 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { useSearchParams } from "next/navigation";
 
 export default function VaultPage() {
   const { isCollapsed, setIsCollapsed } = useSidebar();
@@ -24,6 +25,7 @@ export default function VaultPage() {
   const [isDocFullscreen, setIsDocFullscreen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'dir'>('grid');
   const [activeDirectory, setActiveDirectory] = useState<string | null>(null);
 
@@ -32,10 +34,14 @@ export default function VaultPage() {
   const [aiResult, setAiResult] = useState<any>(null);
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Record<number, boolean>>({});
+  
+  const searchParams = useSearchParams();
+  const fileId = searchParams.get('id');
 
   const supabase = createClient();
 
   useEffect(() => {
+    setIsMounted(true);
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
@@ -51,6 +57,13 @@ export default function VaultPage() {
         setIsLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (fileId && vaultFiles.length > 0) {
+      const file = vaultFiles.find(f => f.id === fileId);
+      if (file) selectVaultFile(file);
+    }
+  }, [fileId, vaultFiles]);
 
   async function loadVaultFiles(userId: string) {
     setIsLoading(true);
@@ -305,14 +318,14 @@ export default function VaultPage() {
                   const isActive = activeVaultFile?.id === file.id;
                   if (viewMode === 'list') {
                     return (
-                      <button key={file.id} onClick={() => selectVaultFile(file)} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${isActive ? 'bg-neutral-900 border-neutral-700 ring-1 ring-white/10' : 'bg-neutral-950/40 border-neutral-900 hover:bg-neutral-900/40'}`}>
+                      <div key={file.id} onClick={() => selectVaultFile(file)} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${isActive ? 'bg-neutral-900 border-neutral-700 ring-1 ring-white/10' : 'bg-neutral-950/40 border-neutral-900 hover:bg-neutral-900/40'}`}>
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${ext === 'pdf' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}><FileText size={20} /></div>
                         <div className="flex-1 min-w-0 text-left">
                           <div className="text-sm font-bold text-white truncate">{file.filename}</div>
-                          <div className="text-[10px] text-neutral-500 font-medium uppercase tracking-tighter">{ext} • {new Date(file.created_at).toLocaleDateString()}</div>
+                          <div className="text-[10px] text-neutral-500 font-medium uppercase tracking-tighter">{ext} • {isMounted ? new Date(file.created_at).toLocaleDateString() : ''}</div>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); setFileToDelete(file.id); }} className="p-2 text-neutral-600 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                      </button>
+                      </div>
                     );
                   }
                   return (

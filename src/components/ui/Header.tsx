@@ -1,14 +1,54 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bell, Search, Command, ArrowRight, X } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { 
+  Bell, Search, Command, ArrowRight, X, 
+  FileText, Folder, Sparkles, Settings, 
+  ChevronRight, Loader2, Clock, Zap,
+  Files, Scissors, Image as ImageIcon, FileImage, 
+  FileBox, FileSpreadsheet, Presentation, FileDown,
+  LayoutDashboard, ArrowLeft
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+
+type View = "main" | "notes" | "vault" | "tools";
 
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [view, setView] = useState<View>("main");
+  const [results, setResults] = useState<{
+    notes: any[],
+    files: any[]
+  }>({ notes: [], files: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  
   const router = useRouter();
+  const supabase = createClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const mainActions = [
+    { id: 'notes', title: 'Notes', icon: <FileText size={18} className="text-indigo-400" />, type: 'view' },
+    { id: 'vault', title: 'Vault', icon: <Folder size={18} className="text-blue-400" />, type: 'view' },
+    { id: 'tools', title: 'Tools', icon: <Zap size={18} className="text-amber-400" />, type: 'view' },
+    { id: 'settings', title: 'Settings', icon: <Settings size={18} className="text-neutral-400" />, path: '/settings', type: 'link' },
+  ];
+
+  const toolItems = [
+    { id: "merge-pdf", title: "Merge PDF", path: "/tools/merge-pdf", icon: <Files size={18} className="text-blue-500" />, category: 'PDF' },
+    { id: "edit-pdf", title: "Edit PDF", path: "/tools/edit-pdf", icon: <Scissors size={18} className="text-purple-500" />, category: 'PDF' },
+    { id: "image-to-pdf", title: "Image to PDF", path: "/tools/image-to-pdf", icon: <ImageIcon size={18} className="text-amber-500" />, category: 'CONVERT' },
+    { id: "pdf-to-image", title: "PDF to Image", path: "/tools/pdf-to-image", icon: <FileImage size={18} className="text-yellow-500" />, category: 'CONVERT' },
+    { id: "word-to-pdf", title: "Word to PDF", path: "/tools/word-to-pdf", icon: <FileText size={18} className="text-blue-400" />, category: 'CONVERT' },
+    { id: "pdf-to-word", title: "PDF to Word", path: "/tools/pdf-to-word", icon: <FileBox size={18} className="text-cyan-500" />, category: 'CONVERT' },
+    { id: "excel-to-pdf", title: "Excel to PDF", path: "/tools/excel-to-pdf", icon: <FileSpreadsheet size={18} className="text-green-500" />, category: 'CONVERT' },
+    { id: "ppt-to-pdf", title: "PPT to PDF", path: "/tools/ppt-to-pdf", icon: <Presentation size={18} className="text-orange-500" />, category: 'CONVERT' },
+    { id: "compress-pdf", title: "Compress PDF", path: "/tools/compress-pdf", icon: <FileDown size={18} className="text-emerald-500" />, category: 'OPTIMIZE' },
+  ];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -17,38 +57,144 @@ export function Header() {
         setIsSearchOpen(true);
       }
       if (e.key === "Escape") {
-        setIsSearchOpen(false);
+        if (view !== "main") {
+          setView("main");
+          setSearchQuery("");
+        } else {
+          setIsSearchOpen(false);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [view]);
 
-  const handleNotificationClick = () => {
-    toast.info("No new notifications at this time.");
+  // Data Fetching
+  useEffect(() => {
+    if (!isSearchOpen) {
+      setSearchQuery("");
+      setView("main");
+      setResults({ notes: [], files: [] });
+      return;
+    }
+
+    const fetchData = async () => {
+      setIsSearching(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (view === "notes" || (view === "main" && searchQuery)) {
+        const { data } = await supabase
+          .from('notes')
+          .select('id, title, updated_at')
+          .eq('user_id', user.id)
+          .ilike('title', `%${searchQuery}%`)
+          .order('updated_at', { ascending: false })
+          .limit(15);
+        setResults(prev => ({ ...prev, notes: data || [] }));
+      }
+
+      if (view === "vault" || (view === "main" && searchQuery)) {
+        const { data } = await supabase
+          .from('vault_files')
+          .select('id, filename, file_format')
+          .eq('user_id', user.id)
+          .ilike('filename', `%${searchQuery}%`)
+          .order('created_at', { ascending: false })
+          .limit(15);
+        setResults(prev => ({ ...prev, files: data || [] }));
+      }
+      setIsSearching(false);
+    };
+
+    fetchData();
+  }, [view, isSearchOpen, searchQuery]);
+
+  const filteredItems = useMemo(() => {
+    if (view === "main") {
+      if (!searchQuery) return [];
+      
+      const actions = mainActions.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map(a => ({ ...a, type: 'action' }));
+      const tools = toolItems.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(t => ({ ...t, type: 'tool' }));
+      const notes = results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note' }));
+      const files = results.files.map(f => ({ ...f, title: f.filename, type: 'file' }));
+
+      return [...actions, ...tools, ...notes, ...files];
+    }
+
+    if (view === "notes") {
+      return results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note' }));
+    }
+
+    if (view === "vault") {
+      return results.files.map(f => ({ ...f, title: f.filename, type: 'file' }));
+    }
+
+    if (view === "tools") {
+      return toolItems.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(t => ({ ...t, type: 'tool' }));
+    }
+
+    return [];
+  }, [view, searchQuery, results]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [view, searchQuery]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev + 1) % Math.max(filteredItems.length, 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev - 1 + filteredItems.length) % Math.max(filteredItems.length, 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const selected = filteredItems[activeIndex];
+      if (selected) handleSelect(selected);
+    } else if (e.key === "Backspace" && searchQuery === "" && view !== "main") {
+      setView("main");
+    }
+  };
+
+  const handleSelect = (item: any) => {
+    if (item.type === 'view') {
+      setView(item.id as View);
+      setSearchQuery("");
+      setActiveIndex(0);
+    } else if (item.type === 'link' || item.type === 'tool') {
+      executeCommand(item.path);
+    } else if (item.type === 'note') {
+      executeCommand(`/notes?id=${item.id}`);
+    } else if (item.type === 'file') {
+      executeCommand(`/vault?id=${item.id}`);
+    }
   };
 
   const executeCommand = (path: string) => {
     setIsSearchOpen(false);
     router.push(path);
+    // Force a small delay to ensure navigation is registered if on same page
+    setTimeout(() => {
+      router.refresh();
+    }, 100);
   };
 
   return (
     <>
-      <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black/40 backdrop-blur-md border-b border-neutral-900 border-none md:border-solid">
-        {/* Mobile spacer for sidebar button */}
+      <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black border-b border-neutral-900 border-none md:border-solid">
         <div className="w-10 md:hidden" />
         
         <div className="flex-1 flex items-center">
           <div 
             onClick={() => setIsSearchOpen(true)}
-            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-neutral-900/50 rounded-lg text-sm text-neutral-400 border border-neutral-800 w-64 hover:border-neutral-700 transition-colors cursor-pointer"
+            className="hidden md:flex items-center gap-2 px-4 py-2 bg-neutral-900/40 rounded-2xl text-sm text-neutral-500 border border-neutral-800/50 w-80 hover:border-neutral-700/50 transition-all cursor-pointer group"
           >
-            <Search size={16} />
-            <span>Search Orbit...</span>
-            <div className="ml-auto flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 text-[10px] uppercase font-semibold bg-neutral-800 rounded border border-neutral-700">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 text-[10px] uppercase font-semibold bg-neutral-800 rounded border border-neutral-700">K</kbd>
+            <Search size={16} className="group-hover:text-indigo-400 transition-colors" />
+            <span className="font-medium">Search or ask assistant...</span>
+            <div className="ml-auto flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-300">⌘</kbd>
+              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-300">K</kbd>
             </div>
           </div>
           
@@ -61,77 +207,116 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          <div className="h-8 w-[1px] bg-neutral-900 hidden md:block mx-2" />
           <button 
-            onClick={handleNotificationClick}
-            className="text-neutral-400 hover:text-white transition-colors relative"
+            onClick={() => toast.info("No notifications.")}
+            className="text-neutral-400 hover:text-white transition-colors relative p-2 rounded-xl hover:bg-neutral-900"
           >
             <Bell size={20} />
-            <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-indigo-500 border-2 border-black"></span>
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-indigo-500 border-2 border-black"></span>
           </button>
         </div>
       </header>
 
-      {/* Command Palette Modal */}
       <AnimatePresence>
         {isSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] px-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
               onClick={() => setIsSearchOpen(false)}
             />
             
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              transition={{ duration: 0.15, type: "spring", bounce: 0 }}
-              className="relative w-full max-w-xl bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+              exit={{ opacity: 0, scale: 0.98, y: 10 }}
+              className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-800 rounded-3xl shadow-[0_32px_64px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-2xl"
             >
-              <div className="flex items-center gap-3 px-4 py-4 border-b border-neutral-800">
-                <Search size={20} className="text-neutral-400" />
+              <div className="flex items-center gap-4 px-6 py-4 border-b border-neutral-800/50">
+                <div className="flex items-center gap-2">
+                  {view !== "main" ? (
+                    <button onClick={(e) => { e.stopPropagation(); setView("main"); setSearchQuery(""); }} className="p-1.5 hover:bg-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-all">
+                      <ArrowLeft size={18} />
+                    </button>
+                  ) : (
+                    <div className="p-1.5 text-neutral-500">
+                      <Search size={20} />
+                    </div>
+                  )}
+                </div>
                 <input 
                   autoFocus
+                  ref={inputRef}
                   type="text" 
-                  placeholder="Search notes, folders, or command..."
-                  className="flex-1 bg-transparent text-lg text-white font-medium outline-none placeholder-neutral-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={view === "main" ? "Search Orbit..." : `Search in ${view.charAt(0).toUpperCase() + view.slice(1)}...`}
+                  className="flex-1 bg-transparent text-lg text-white font-medium outline-none placeholder-neutral-600"
                 />
-                <kbd className="px-2 py-1 text-[10px] uppercase font-semibold text-neutral-500 bg-neutral-800 rounded border border-neutral-700">ESC</kbd>
+                {isSearching && <Loader2 size={16} className="text-indigo-500 animate-spin mr-2" />}
+                <kbd className="px-1.5 py-0.5 text-[9px] font-black text-neutral-500 bg-neutral-800/50 rounded-lg border border-neutral-700/50">ESC</kbd>
               </div>
               
-              <div className="p-2 space-y-1">
-                <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Quick Actions
+              {filteredItems.length > 0 && (
+                <div className="max-h-[50vh] overflow-y-auto p-2 no-scrollbar border-t border-neutral-800/20">
+                  <div className="space-y-1">
+                    {filteredItems.map((item, i) => (
+                      <ResultItem 
+                        key={item.id}
+                        isActive={activeIndex === i}
+                        onClick={() => handleSelect(item)}
+                        icon={item.icon || (item.type === 'note' ? <FileText size={18} className="text-indigo-400" /> : <Folder size={18} className="text-blue-400" />)}
+                        title={item.title}
+                        description={item.type === 'view' ? "Open to see items" : item.category || (item.updated_at ? `Last updated ${new Date(item.updated_at).toLocaleDateString()}` : "")}
+                        type={item.type}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <button onClick={() => executeCommand('/notes')} className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-800 rounded-xl transition-colors group">
-                  <div className="flex items-center gap-3 text-neutral-300 group-hover:text-white">
-                    <Command size={18} className="text-neutral-500 group-hover:text-indigo-400" />
-                    <span>Create new note</span>
-                  </div>
-                  <ArrowRight size={16} className="text-neutral-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all" />
-                </button>
-                <button onClick={() => executeCommand('/vault')} className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-800 rounded-xl transition-colors group">
-                  <div className="flex items-center gap-3 text-neutral-300 group-hover:text-white">
-                    <Command size={18} className="text-neutral-500 group-hover:text-indigo-400" />
-                    <span>Open Document Vault</span>
-                  </div>
-                  <ArrowRight size={16} className="text-neutral-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all" />
-                </button>
-                <button onClick={() => executeCommand('/assistant')} className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-800 rounded-xl transition-colors group">
-                  <div className="flex items-center gap-3 text-neutral-300 group-hover:text-white">
-                    <Command size={18} className="text-neutral-500 group-hover:text-indigo-400" />
-                    <span>Ask AI Assistant</span>
-                  </div>
-                  <ArrowRight size={16} className="text-neutral-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all" />
-                </button>
-              </div>
+              )}
             </motion.div>
           </div>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function ResultItem({ isActive, onClick, icon, title, description, type }: any) {
+  return (
+    <div 
+      onClick={onClick} 
+      className={`w-full flex items-center justify-between px-4 py-2 rounded-xl transition-all group relative cursor-pointer ${
+        isActive ? "bg-white/10 ring-1 ring-white/20 shadow-xl" : "hover:bg-neutral-800/40"
+      }`}
+    >
+      <div className="flex items-center gap-3 text-neutral-300">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+          isActive ? "bg-neutral-800 shadow-inner" : "bg-neutral-900/30"
+        }`}>
+          {icon}
+        </div>
+        <div className="flex flex-col items-start text-left">
+          <span className={`text-sm font-bold transition-colors ${isActive ? "text-white" : "text-neutral-300 group-hover:text-white"}`}>
+            {title}
+          </span>
+          {description && (
+            <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${
+              isActive ? "text-neutral-400" : "text-neutral-600"
+            }`}>
+              {description}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        {type === 'view' && <div className="px-2 py-1 bg-indigo-500/10 text-indigo-500 text-[8px] font-black rounded uppercase tracking-widest border border-indigo-500/20">Expand</div>}
+        <ChevronRight size={18} className={`transition-all ${isActive ? "text-white translate-x-0 opacity-100" : "text-neutral-800 -translate-x-2 opacity-0"}`} />
+      </div>
+    </div>
   );
 }

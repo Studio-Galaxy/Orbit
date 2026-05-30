@@ -11,6 +11,7 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { useSearchParams } from "next/navigation";
 
 export default function NotesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -28,6 +29,9 @@ export default function NotesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  
+  const searchParams = useSearchParams();
+  const noteIdFromUrl = searchParams.get('id');
   
   const supabase = createClient();
 
@@ -47,6 +51,13 @@ export default function NotesPage() {
         setIsLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (noteIdFromUrl && notes.length > 0) {
+      const note = notes.find(n => n.id === noteIdFromUrl);
+      if (note) setActiveNote(note);
+    }
+  }, [noteIdFromUrl, notes]);
 
   async function loadNotes(userId: string) {
     setIsLoading(true);
