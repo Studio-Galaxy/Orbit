@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { AssistantPopup } from "./AssistantPopup";
 
@@ -30,8 +30,11 @@ export function Header() {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isDashboard = pathname === '/dashboard';
 
   const mainActions = [
     { id: 'notes', title: 'Notes', icon: <FileText size={18} className="text-indigo-400" />, type: 'view' },
@@ -194,63 +197,65 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black border-b border-neutral-900 border-none md:border-solid">
-        {/* Left Side - Space for Sidebar toggle or Logo */}
-        <div className="w-10 md:w-80 flex-shrink-0" />
+      {isDashboard && (
+        <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black border-b border-neutral-900 border-none md:border-solid animate-in fade-in slide-in-from-top-4 duration-500">
+          {/* Left Side - Space for Sidebar toggle or Logo */}
+          <div className="w-10 md:w-80 flex-shrink-0" />
 
-        {/* Center - Search Trigger & AI Assistant */}
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <div
-            onClick={() => setIsSearchOpen(true)}
-            className="hidden md:flex items-center gap-3 px-5 py-2.5 bg-neutral-900/40 rounded-2xl text-sm text-neutral-500 border border-neutral-800/50 w-[400px] hover:border-neutral-700 transition-all cursor-pointer group shadow-sm backdrop-blur-xl"
-          >
-            <Search size={16} className="group-hover:text-purple-400 transition-colors" />
-            <span className="font-medium tracking-tight">Search or ask assistant...</span>
-            <div className="ml-auto flex items-center gap-1.5 opacity-30 group-hover:opacity-100 transition-all">
-              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-400">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-400">K</kbd>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setIsAssistantOpen(true)}
-            className="hidden md:flex items-center gap-3 px-4 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/20 transition-all hover:border-indigo-500/40 group shadow-[0_0_15px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-          >
-            <Sparkles size={16} className="animate-pulse group-hover:scale-110 transition-transform" />
-            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-all">
-              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-900 rounded-md border border-neutral-800 text-neutral-400">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-900 rounded-md border border-neutral-800 text-neutral-400">I</kbd>
-            </div>
-          </button>
-
-          <div className="md:hidden flex items-center gap-2">
-            <button
+          {/* Center - Search Trigger & AI Assistant */}
+          <div className="flex-1 flex items-center justify-center gap-3">
+            <div
               onClick={() => setIsSearchOpen(true)}
-              className="text-neutral-400 hover:text-white transition-colors p-2"
+              className="hidden md:flex items-center gap-3 px-5 py-2.5 bg-neutral-900/40 rounded-2xl text-sm text-neutral-500 border border-neutral-800/50 w-[400px] hover:border-neutral-700 transition-all cursor-pointer group shadow-sm backdrop-blur-xl"
             >
-              <Search size={20} />
-            </button>
+              <Search size={16} className="group-hover:text-purple-400 transition-colors" />
+              <span className="font-medium tracking-tight">Search or ask assistant...</span>
+              <div className="ml-auto flex items-center gap-1.5 opacity-30 group-hover:opacity-100 transition-all">
+                <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-400">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-400">K</kbd>
+              </div>
+            </div>
+
             <button
               onClick={() => setIsAssistantOpen(true)}
-              className="text-indigo-400 hover:text-indigo-300 transition-colors p-2"
+              className="hidden md:flex items-center gap-3 px-4 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/20 transition-all hover:border-indigo-500/40 group shadow-[0_0_15px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]"
             >
-              <Sparkles size={20} />
+              <Sparkles size={16} className="animate-pulse group-hover:scale-110 transition-transform" />
+              <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-all">
+                <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-900 rounded-md border border-neutral-800 text-neutral-400">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-900 rounded-md border border-neutral-800 text-neutral-400">I</kbd>
+              </div>
+            </button>
+
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="text-neutral-400 hover:text-white transition-colors p-2"
+              >
+                <Search size={20} />
+              </button>
+              <button
+                onClick={() => setIsAssistantOpen(true)}
+                className="text-indigo-400 hover:text-indigo-300 transition-colors p-2"
+              >
+                <Sparkles size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Right Side - Actions */}
+          <div className="w-10 md:w-80 flex items-center justify-end gap-3 flex-shrink-0">
+            <div className="h-8 w-[1px] bg-neutral-900 hidden md:block mx-1" />
+            <button
+              onClick={() => toast.info("No notifications.")}
+              className="text-neutral-400 hover:text-white transition-colors relative p-2.5 rounded-xl hover:bg-neutral-900 transition-all"
+            >
+              <Bell size={20} />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-purple-500 border-2 border-black animate-pulse"></span>
             </button>
           </div>
-        </div>
-
-        {/* Right Side - Actions */}
-        <div className="w-10 md:w-80 flex items-center justify-end gap-3 flex-shrink-0">
-          <div className="h-8 w-[1px] bg-neutral-900 hidden md:block mx-1" />
-          <button
-            onClick={() => toast.info("No notifications.")}
-            className="text-neutral-400 hover:text-white transition-colors relative p-2.5 rounded-xl hover:bg-neutral-900 transition-all"
-          >
-            <Bell size={20} />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-purple-500 border-2 border-black animate-pulse"></span>
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
       <AnimatePresence>
         {isSearchOpen && (
