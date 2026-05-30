@@ -130,15 +130,13 @@ const TOOLS_CONFIG: Record<string, {
     accept: ".pdf",
     multiple: false,
     minFiles: 1,
-    isMocked: true,
   },
   "word-to-pdf": {
     name: "Word to PDF",
     description: "Convert Microsoft Word documents (DOC, DOCX) to PDF flawlessly.",
     accept: ".doc,.docx",
-    multiple: true,
+    multiple: false,
     minFiles: 1,
-    isMocked: true,
   },
   "pdf-to-word": {
     name: "PDF to Word",
@@ -146,23 +144,20 @@ const TOOLS_CONFIG: Record<string, {
     accept: ".pdf",
     multiple: false,
     minFiles: 1,
-    isMocked: true,
   },
   "excel-to-pdf": {
     name: "Excel to PDF",
     description: "Convert Excel spreadsheets (XLS, XLSX) into clean PDF reports.",
     accept: ".xls,.xlsx",
-    multiple: true,
+    multiple: false,
     minFiles: 1,
-    isMocked: true,
   },
   "ppt-to-pdf": {
     name: "PPT to PDF",
     description: "Instantly create PDFs from your PowerPoint presentations.",
     accept: ".ppt,.pptx",
-    multiple: true,
+    multiple: false,
     minFiles: 1,
-    isMocked: true,
   },
 };
 
@@ -400,11 +395,41 @@ export default function ToolExecutionPage() {
         const pdfBytes = await doc.save({ useObjectStreams: true });
         saveAs(new Blob([pdfBytes as any], { type: "application/pdf" }), `compressed-${files[0].name}`);
       }
-      else if (config.isMocked) {
-        // Fallback for tools that require a backend/server for high-fidelity conversion (Word/Excel/PPT)
-        toast.info("Production implementation for Office files requires a server-side API (e.g., CloudConvert or LibreOffice library).");
-        setIsProcessing(false);
-        return;
+      else if (["word-to-pdf", "pdf-to-word", "excel-to-pdf", "ppt-to-pdf"].includes(toolId)) {
+        const file = files[0];
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        let from = file.name.split('.').pop()?.toLowerCase() || '';
+        let to = "pdf";
+        
+        if (toolId === "pdf-to-word") {
+          from = "pdf";
+          to = "docx";
+        }
+
+        formData.append("from", from);
+        formData.append("to", to);
+
+        // Simulated progress for long conversion
+        const progressInterval = setInterval(() => {
+          setProgress(prev => Math.min(prev + 5, 95));
+        }, 1000);
+
+        const res = await fetch("/api/tools/convert", {
+          method: "POST",
+          body: formData,
+        });
+
+        clearInterval(progressInterval);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Conversion failed");
+
+        // Download result
+        const response = await fetch(data.url);
+        const blob = await response.blob();
+        saveAs(blob, data.filename);
       }
 
       setProgress(100);
