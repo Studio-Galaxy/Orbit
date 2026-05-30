@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
 
     const inlineDataParts: Record<string, unknown>[] = [];
     const contextTexts: string[] = [];
+    
+    // Fetch user's file inventory for global context
+    const { data: vaultFiles } = await supabase.from('vault_files').select('filename, file_format, created_at').eq('user_id', user.id);
+    const fileInventory = vaultFiles?.map(f => `- ${f.filename} (${f.file_format}) uploaded ${f.created_at}`).join('\n') || "No files in vault.";
 
     // Optimize rate limits and context: Only fetch explicitly mentioned docs
     if (contextDocs && Array.isArray(contextDocs) && contextDocs.length > 0) {
@@ -111,6 +115,24 @@ If the user asks you to explain a complex topic in detail, or asks for a thoroug
 
 CRITICAL INSTRUCTION: If outputting JSON, do NOT wrap it in markdown code blocks (\`\`\`json). Return raw JSON.
 If the user asks a normal question and you are not rendering one of the JSON formats above, just respond with normal text. DO NOT output JSON.
+
+### ADVANCED TOOL SYSTEM:
+You can suggest actions for the Orbit Document Workspace.
+If the user wants to merge, edit, compress, or convert documents, output a JSON block:
+{
+  "type": "tool_action",
+  "tool": "merge-pdf | edit-pdf | compress-pdf | pdf-to-image | word-to-pdf",
+  "files": ["filename1.pdf", "filename2.pdf"],
+  "params": {
+     "description": "Short summary of what you are suggesting (e.g. 'Remove pages 1-3 from Hostel.pdf')",
+     "page_order": [0, 2, 3], // 0-indexed indices of pages to keep/reorder.
+     "action_details": { ... any other metadata ... }
+  },
+  "explanation": "Brief context for the user about why you chose this tool."
+}
+
+User's File Inventory:
+${fileInventory}
 
 Context (Explicitly Mentioned Items by the Student):
 ${contextTexts.length > 0 ? contextTexts.join('\n\n---\n\n') : "No explicitly mentioned notes."}`;

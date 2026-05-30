@@ -1,8 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, X, Trash2, Command, MessageSquare, Loader2, Minus, User, Save } from "lucide-react";
+import { Sparkles, Send, X, Trash2, Command, MessageSquare, Loader2, Minus, User, Save, ArrowRight, FileBox, FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -18,6 +19,21 @@ type Message = {
   role: "user" | "assistant";
   content: string;
 };
+
+const COMMANDS = [
+  { id: "summarize", label: "/summarize", desc: "Summarize notes or PDFs" },
+  { id: "flashcards", label: "/flashcards", desc: "Generate flashcards from context" },
+  { id: "viva-voice", label: "/viva-voice", desc: "Generate oral exam questions" },
+];
+
+const TOOL_COMMANDS = [
+  { id: "merge-pdf", label: "#merge-pdf", desc: "Merge @PDFs into one" },
+  { id: "edit-pdf", label: "#edit-pdf", desc: "Edit @PDF details" },
+  { id: "compress-pdf", label: "#compress-pdf", desc: "Shrink @PDF size" },
+  { id: "pdf-to-image", label: "#pdf-to-image", desc: "JPGs from @PDF" },
+  { id: "image-to-pdf", label: "#image-to-pdf", desc: "Images to PDF" },
+  { id: "word-to-pdf", label: "#word-to-pdf", desc: "Word to PDF" },
+];
 
 const CodeBlock = ({ className, children, ...props }: any) => {
   const match = /language-(\w+)/.exec(className || '');
@@ -47,12 +63,19 @@ const CodeBlock = ({ className, children, ...props }: any) => {
 };
 
 export function AssistantPopup({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'mobile' | 'mac'>('mobile');
+  const [availableDocs, setAvailableDocs] = useState<{type: string, id: string, label: string, url?: string}[]>([]);
+  const [showMentions, setShowMentions] = useState(false);
+  const [showCommands, setShowCommands] = useState(false);
+  const [showTools, setShowTools] = useState(false);
+  const [filterText, setFilterText] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -60,7 +83,20 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
     if (viewPref === 'mac') setViewMode('mac');
 
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser(data.user);
+      if (data.user) {
+        setUser(data.user);
+        
+        // Fetch docs for intelligent context
+        const fetchDocs = async () => {
+          const { data: notesData } = await supabase.from('notes').select('id, title').eq('user_id', data.user!.id);
+          const { data: vaultData } = await supabase.from('vault_files').select('id, filename, file_url').eq('user_id', data.user!.id);
+          const docs: any[] = [];
+          if (notesData) notesData.forEach(n => docs.push({ type: 'note', id: n.id, label: n.title }));
+          if (vaultData) vaultData.forEach(v => docs.push({ type: 'pdf', id: v.id, label: v.filename, url: v.file_url }));
+          setAvailableDocs(docs);
+        };
+        fetchDocs();
+      }
     });
 
     const saved = localStorage.getItem("orbit-assistant-popup-messages");
@@ -80,8 +116,52 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    const lastWord = input.split(' ').pop() || "";
+    if (lastWord.startsWith('@')) {
+      setShowMentions(true);
+      setShowCommands(false);
+      setShowTools(false);
+      setFilterText(lastWord.slice(1).toLowerCase());
+      setSelectedIndex(0);
+    } else if (lastWord.startsWith('/')) {
+      setShowCommands(true);
+      setShowMentions(false);
+      setShowTools(false);
+      setFilterText(lastWord.slice(1).toLowerCase());
+      setSelectedIndex(0);
+    } else if (lastWord.startsWith('#')) {
+      setShowTools(true);
+      setShowMentions(false);
+      setShowCommands(false);
+      setFilterText(lastWord.slice(1).toLowerCase());
+      setSelectedIndex(0);
+    } else {
+      setShowMentions(false);
+      setShowCommands(false);
+      setShowTools(false);
+    }
+  }, [input]);
+
+  const filteredDocs = availableDocs.filter(d => d.label?.toLowerCase().includes(filterText)).slice(0, 5);
+  const filteredCommands = COMMANDS.filter(c => c.label.toLowerCase().includes(filterText)).slice(0, 5);
+  const filteredTools = TOOL_COMMANDS.filter(t => t.label.toLowerCase().includes(filterText)).slice(0, 5);
+
+  const insertCompletion = (text: string) => {
+    const words = input.split(' ');
+    words.pop();
+    words.push(text + " ");
+    setInput(words.join(' '));
+    setShowMentions(false);
+    setShowCommands(false);
+    setShowTools(false);
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
+
+    // Scan for mentions to send explicit context
+    const mentionedDocs = availableDocs.filter(doc => input.includes(`@${doc.label}`));
 
     const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: input };
     const newMessages = [...messages, newUserMsg];
@@ -93,7 +173,10 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ 
+          messages: newMessages,
+          contextDocs: mentionedDocs
+        }),
       });
       const data = await res.json();
 
@@ -177,6 +260,36 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
         );
       }
 
+      if (parsed.type === 'tool_action') {
+        return (
+          <div className="w-full mt-2 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shadow-xl overflow-hidden relative">
+            <div className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Suggested Tool</div>
+            <h3 className="text-sm font-bold text-white mb-2">{parsed.params?.description || "Document Process"}</h3>
+            <p className="text-xs text-neutral-400 mb-4 line-clamp-2">{parsed.explanation}</p>
+            
+            {parsed.files?.map((filename: string, i: number) => (
+               <div key={i} className="text-[10px] text-neutral-500 flex items-center gap-2 mb-1.5 bg-black/40 p-1.5 rounded-lg border border-white/5 font-medium truncate">
+                  <FileBox size={10} /> {filename}
+               </div>
+            ))}
+
+            <button
+              onClick={() => {
+                const doc = availableDocs.find(d => d.label === (parsed.files?.[0] || ""));
+                const params = new URLSearchParams();
+                if (doc?.id) params.set('fileId', doc.id);
+                if (parsed.params?.page_order) params.set('pageOrder', JSON.stringify(parsed.params.page_order));
+                router.push(`/tools/${parsed.tool}?${params.toString()}`);
+              }}
+              className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-black hover:bg-neutral-100 font-black text-[10px] uppercase tracking-[0.15em] rounded-xl transition-all shadow-lg active:scale-95"
+            >
+              Launch Tool
+              <ArrowRight size={12} />
+            </button>
+          </div>
+        );
+      }
+
       return (
         <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-indigo-400">
           <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={{ code: CodeBlock }}>
@@ -214,10 +327,11 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
       />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 40 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 40 }}
-        className={`relative w-full transition-all duration-500 ease-out ${
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 10 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className={`relative w-full ${
           viewMode === 'mac' 
             ? "max-w-5xl aspect-[16/10] h-[80vh] rounded-3xl" 
             : "max-w-sm aspect-[9/16] h-[85vh] rounded-[3rem]"
@@ -286,7 +400,64 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
           <div ref={messagesEndRef} className="h-20" />
         </div>
 
-        <div className={`p-6 pb-2 bg-gradient-to-t from-black via-black to-transparent mt-auto ${viewMode === 'mac' ? 'max-w-4xl mx-auto w-full' : ''}`}>
+        <div className={`p-6 pb-2 bg-gradient-to-t from-black via-black to-transparent mt-auto relative ${viewMode === 'mac' ? 'max-w-4xl mx-auto w-full' : ''}`}>
+          {/* Autocomplete Dropdown */}
+          <AnimatePresence>
+            {((showMentions && filteredDocs.length > 0) || 
+              (showCommands && filteredCommands.length > 0) || 
+              (showTools && filteredTools.length > 0)) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute bottom-full mb-4 left-0 w-[calc(100%-3rem)] mx-6 bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl z-50"
+              >
+                {showMentions && (
+                  <div className="p-2">
+                    {filteredDocs.map((doc, i) => (
+                      <div
+                        key={doc.id}
+                        onClick={() => insertCompletion(`@${doc.label}`)}
+                        className={`px-3 py-2 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                      >
+                        {doc.type === 'note' ? <FileText size={14} /> : <FileBox size={14} />}
+                        <span className="font-medium text-xs truncate">{doc.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showCommands && (
+                  <div className="p-2">
+                    {filteredCommands.map((cmd, i) => (
+                      <div
+                        key={cmd.id}
+                        onClick={() => insertCompletion(cmd.label)}
+                        className={`px-3 py-2 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                      >
+                         <Command size={14} />
+                         <span className="font-medium text-xs">{cmd.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showTools && (
+                  <div className="p-2">
+                    {filteredTools.map((tool, i) => (
+                      <div
+                        key={tool.id}
+                        onClick={() => insertCompletion(tool.label)}
+                        className={`px-3 py-2 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                      >
+                         <Command size={14} />
+                         <span className="font-medium text-xs">{tool.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="relative flex items-center bg-[#111] border border-neutral-800 rounded-2xl transition-all shadow-inner overflow-hidden pr-2">
             <textarea
               autoFocus
@@ -294,7 +465,22 @@ export function AssistantPopup({ onClose }: { onClose: () => void }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                 if (e.key === 'Enter' && !e.shiftKey) {
+                 if (showMentions && filteredDocs.length > 0) {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(prev => (prev + 1) % filteredDocs.length); }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(prev => (prev - 1 + filteredDocs.length) % filteredDocs.length); }
+                    if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); insertCompletion(`@${filteredDocs[selectedIndex].label}`); }
+                    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setShowMentions(false); }
+                 } else if (showCommands && filteredCommands.length > 0) {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(prev => (prev + 1) % filteredCommands.length); }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length); }
+                    if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); insertCompletion(filteredCommands[selectedIndex].label); }
+                    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setShowCommands(false); }
+                 } else if (showTools && filteredTools.length > 0) {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(prev => (prev + 1) % filteredTools.length); }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(prev => (prev - 1 + filteredTools.length) % filteredTools.length); }
+                    if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); insertCompletion(filteredTools[selectedIndex].label); }
+                    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setShowTools(false); }
+                 } else if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
                  }

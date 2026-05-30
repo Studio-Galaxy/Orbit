@@ -1,8 +1,9 @@
 "use client";
 
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload, Copy, Check } from "lucide-react";
+import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload, Copy, Check, ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
@@ -92,6 +93,7 @@ const CodeBlock = ({ className, children, ...props }: any) => {
 };
 
 export default function AssistantPage() {
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -612,6 +614,62 @@ export default function AssistantPage() {
                 <FileText size={14} className="group-hover:scale-110 transition-transform" /> Download
               </button>
             </div>
+          </div>
+        );
+      }
+      if (parsed.type === 'tool_action') {
+        const toolIcon = TOOL_COMMANDS.find(t => t.id === parsed.tool)?.label || "#tool";
+        return (
+          <div className="w-full mt-2 p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border border-indigo-500/20 rounded-2xl shadow-xl overflow-hidden relative group/action">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none group-hover/action:bg-indigo-500/20 transition-all" />
+            
+            <div className="flex items-center gap-4 mb-4 relative">
+              <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner group-hover/action:border-indigo-500/50 transition-colors">
+                <Command size={24} />
+              </div>
+              <div>
+                <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Suggested Action</div>
+                <h3 className="text-base font-bold text-white mb-0.5">{parsed.params?.description || "Document Process"}</h3>
+                <div className="text-[10px] text-neutral-500 font-medium">Using {parsed.tool}</div>
+              </div>
+            </div>
+
+            <div className="text-sm text-neutral-300 mb-6 line-clamp-2 leading-relaxed">
+              {parsed.explanation}
+            </div>
+
+            <div className="flex flex-col gap-3 relative">
+               {parsed.files?.map((filename: string, i: number) => {
+                 const doc = availableDocs.find(d => d.label === filename);
+                 return (
+                   <div key={i} className="flex items-center gap-3 bg-black/40 border border-white/5 p-2.5 rounded-xl">
+                      <FileBox size={14} className="text-neutral-500" />
+                      <span className="text-xs text-neutral-300 truncate flex-1 font-medium">{filename}</span>
+                      {!doc && <span className="text-[8px] font-bold text-red-500/80 uppercase tracking-tighter">Not Found</span>}
+                   </div>
+                 );
+               })}
+            </div>
+
+            <button
+              onClick={() => {
+                const doc = availableDocs.find(d => d.label === (parsed.files?.[0] || ""));
+                if (!doc && parsed.tool !== 'image-to-pdf') {
+                  toast.error(`File "${parsed.files?.[0]}" not found in your vault.`);
+                  return;
+                }
+                
+                const params = new URLSearchParams();
+                if (doc?.id) params.set('fileId', doc.id);
+                if (parsed.params?.page_order) params.set('pageOrder', JSON.stringify(parsed.params.page_order));
+                
+                router.push(`/tools/${parsed.tool}?${params.toString()}`);
+              }}
+              className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-black hover:bg-indigo-50 underline-offset-4 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 group/btn"
+            >
+              Launch {parsed.tool.split('-').map((s:string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+            </button>
           </div>
         );
       }

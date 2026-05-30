@@ -216,12 +216,11 @@ function NotesPageInternal() {
     <div className="h-full w-full bg-black flex flex-col overflow-hidden relative">
       {/* Header Pattern - Vault Inspired */}
       {!activeNoteId && (
-        <div className="pt-12 px-8 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-5xl font-black text-white tracking-tighter flex items-center gap-4">
+        <div className="pt-8 px-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
               Library
             </h1>
-            <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.3em] pl-1">Personal Knowledge Base</p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -304,7 +303,7 @@ function NotesPageInternal() {
                    <button onClick={() => setSearchQuery("")} className="text-indigo-400 text-xs font-black uppercase tracking-widest hover:text-indigo-300 transition-colors">Clear Search</button>
                 </div>
               ) : (
-                <div className={`mt-4 ${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6' : 'flex flex-col gap-3'}`}>
+                <div className={`mt-4 ${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6' : 'flex flex-col gap-3'}`}>
                   {filteredNotes.map((note) => {
                     const updatedAt = new Date(note.updated_at || note.created_at);
                     if (viewMode === 'list') {
@@ -339,9 +338,9 @@ function NotesPageInternal() {
                         layout
                         key={note.id}
                         onClick={() => setActiveNote(note)}
-                        className="group relative h-64 bg-neutral-900/20 border border-neutral-900 rounded-[2.5rem] p-8 flex flex-col hover:bg-neutral-900/40 hover:border-neutral-800 transition-all cursor-pointer overflow-hidden shadow-sm"
+                        className="group relative aspect-[4/3] bg-neutral-900/20 border border-neutral-900 rounded-[2rem] p-6 flex flex-col hover:bg-neutral-900/40 hover:border-neutral-800 transition-all cursor-pointer overflow-hidden shadow-sm"
                       >
-                         <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform group-hover:bg-indigo-500 group-hover:text-white shadow-xl">
+                         <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform group-hover:bg-indigo-500 group-hover:text-white shadow-xl">
                             <FileText size={20} />
                          </div>
                          <h3 className="text-lg font-bold text-white mb-2 leading-tight line-clamp-2">{note.title || "Untitled Note"}</h3>
@@ -356,9 +355,6 @@ function NotesPageInternal() {
                             >
                                <Trash2 size={14} />
                             </button>
-                         </div>
-                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
-                            <FileText size={120} className="-rotate-12 translate-x-8 -translate-y-8" />
                          </div>
                       </motion.div>
                     );

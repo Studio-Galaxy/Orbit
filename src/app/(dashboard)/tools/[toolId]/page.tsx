@@ -1,7 +1,7 @@
 "use client";
 
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
@@ -18,6 +18,7 @@ import {
   Scissors,
   GripVertical
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { Reorder } from "framer-motion";
 
@@ -163,6 +164,7 @@ const TOOLS_CONFIG: Record<string, {
 
 export default function ToolExecutionPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const toolId = typeof params.toolId === 'string' ? params.toolId : "";
   const config = TOOLS_CONFIG[toolId];
@@ -195,6 +197,43 @@ export default function ToolExecutionPage() {
     setFiles(newFiles);
     setDraggedFileIndex(null);
   };
+
+  // URL Parameter Handling
+  useEffect(() => {
+    const fileId = searchParams.get('fileId');
+    const order = searchParams.get('pageOrder');
+    
+    if (fileId) {
+      const loadFromVault = async () => {
+        const supabase = createClient();
+        const { data, error } = await supabase.from('vault_files').select('*').eq('id', fileId).single();
+        if (error || !data) {
+          toast.error("Failed to load file from vault");
+          return;
+        }
+
+        try {
+          const res = await fetch(data.file_url);
+          const blob = await res.blob();
+          const file = new File([blob], data.filename, { type: 'application/pdf' });
+          setFiles([file]);
+          
+          if (order) {
+            try {
+              const parsedOrder = JSON.parse(order);
+              if (Array.isArray(parsedOrder)) {
+                setPageOrder(parsedOrder);
+                toast.success("AI instructions applied!");
+              }
+            } catch (e) {}
+          }
+        } catch (e) {
+          toast.error("Error fetching file content");
+        }
+      };
+      loadFromVault();
+    }
+  }, [searchParams]);
 
   // Reset scroll to top on mount
   useEffect(() => {
