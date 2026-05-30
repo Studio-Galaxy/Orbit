@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { 
-  Bell, Search, Command, ArrowRight, X, 
-  FileText, Folder, Sparkles, Settings, 
+import {
+  Bell, Search, Command, ArrowRight, X,
+  FileText, Folder, Sparkles, Settings,
   ChevronRight, Loader2, Clock, Zap,
-  Files, Scissors, Image as ImageIcon, FileImage, 
+  Files, Scissors, Image as ImageIcon, FileImage,
   FileBox, FileSpreadsheet, Presentation, FileDown,
   LayoutDashboard, ArrowLeft
 } from "lucide-react";
@@ -26,16 +26,16 @@ export function Header() {
   }>({ notes: [], files: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  
+
   const router = useRouter();
   const supabase = createClient();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const mainActions = [
-    { id: 'notes', title: 'Notes', icon: <FileText size={18} className="text-indigo-400" />, type: 'view' },
-    { id: 'vault', title: 'Vault', icon: <Folder size={18} className="text-blue-400" />, type: 'view' },
-    { id: 'tools', title: 'Tools', icon: <Zap size={18} className="text-amber-400" />, type: 'view' },
-    { id: 'settings', title: 'Settings', icon: <Settings size={18} className="text-neutral-400" />, path: '/settings', type: 'link' },
+    { id: 'notes', title: 'Create new note', icon: <Command size={16} className="text-neutral-400" />, path: '/notes', type: 'link' },
+    { id: 'vault', title: 'Open Document Vault', icon: <Command size={16} className="text-neutral-400" />, path: '/vault', type: 'link' },
+    { id: 'assistant', title: 'Ask AI Assistant', icon: <Command size={16} className="text-neutral-400" />, path: '/assistant', type: 'link' },
+    { id: 'tools', title: 'PDF Tools', icon: <Command size={16} className="text-neutral-400" />, type: 'view' },
   ];
 
   const toolItems = [
@@ -112,8 +112,8 @@ export function Header() {
 
   const filteredItems = useMemo(() => {
     if (view === "main") {
-      if (!searchQuery) return [];
-      
+      if (!searchQuery) return mainActions.map(a => ({ ...a, type: 'action', isInitial: true }));
+
       const actions = mainActions.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map(a => ({ ...a, type: 'action' }));
       const tools = toolItems.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(t => ({ ...t, type: 'tool' }));
       const notes = results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note' }));
@@ -162,8 +162,12 @@ export function Header() {
       setView(item.id as View);
       setSearchQuery("");
       setActiveIndex(0);
-    } else if (item.type === 'link' || item.type === 'tool') {
-      executeCommand(item.path);
+    } else if (item.type === 'link' || item.type === 'tool' || item.type === 'action') {
+      if (item.path) {
+        executeCommand(item.path);
+      } else if (item.id === 'tools') {
+        setView('tools');
+      }
     } else if (item.type === 'note') {
       executeCommand(`/notes?id=${item.id}`);
     } else if (item.type === 'file') {
@@ -184,9 +188,9 @@ export function Header() {
     <>
       <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black border-b border-neutral-900 border-none md:border-solid">
         <div className="w-10 md:hidden" />
-        
+
         <div className="flex-1 flex items-center">
-          <div 
+          <div
             onClick={() => setIsSearchOpen(true)}
             className="hidden md:flex items-center gap-2 px-4 py-2 bg-neutral-900/40 rounded-2xl text-sm text-neutral-500 border border-neutral-800/50 w-80 hover:border-neutral-700/50 transition-all cursor-pointer group"
           >
@@ -197,8 +201,8 @@ export function Header() {
               <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-neutral-800 rounded-md border border-neutral-700 text-neutral-300">K</kbd>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => setIsSearchOpen(true)}
             className="md:hidden text-neutral-400 hover:text-white transition-colors p-2"
           >
@@ -208,7 +212,7 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <div className="h-8 w-[1px] bg-neutral-900 hidden md:block mx-2" />
-          <button 
+          <button
             onClick={() => toast.info("No notifications.")}
             className="text-neutral-400 hover:text-white transition-colors relative p-2 rounded-xl hover:bg-neutral-900"
           >
@@ -221,15 +225,15 @@ export function Header() {
       <AnimatePresence>
         {isSearchOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
               onClick={() => setIsSearchOpen(false)}
             />
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, scale: 0.98, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 10 }}
@@ -247,10 +251,10 @@ export function Header() {
                     </div>
                   )}
                 </div>
-                <input 
+                <input
                   autoFocus
                   ref={inputRef}
-                  type="text" 
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -260,18 +264,21 @@ export function Header() {
                 {isSearching && <Loader2 size={16} className="text-indigo-500 animate-spin mr-2" />}
                 <kbd className="px-1.5 py-0.5 text-[9px] font-black text-neutral-500 bg-neutral-800/50 rounded-lg border border-neutral-700/50">ESC</kbd>
               </div>
-              
+
               {filteredItems.length > 0 && (
                 <div className="max-h-[50vh] overflow-y-auto p-2 no-scrollbar border-t border-neutral-800/20">
+                  {!searchQuery && view === "main" && (
+                    <div className="px-4 py-3 text-[10px] font-black text-neutral-600 uppercase tracking-[0.2em]">Quick Actions</div>
+                  )}
                   <div className="space-y-1">
                     {filteredItems.map((item, i) => (
-                      <ResultItem 
+                      <ResultItem
                         key={item.id}
                         isActive={activeIndex === i}
                         onClick={() => handleSelect(item)}
                         icon={item.icon || (item.type === 'note' ? <FileText size={18} className="text-indigo-400" /> : <Folder size={18} className="text-blue-400" />)}
                         title={item.title}
-                        description={item.type === 'view' ? "Open to see items" : item.category || (item.updated_at ? `Last updated ${new Date(item.updated_at).toLocaleDateString()}` : "")}
+                        description={item.type === 'view' ? "Open to see items" : (item.isInitial ? "" : (item.category || (item.updated_at ? `Last updated ${new Date(item.updated_at).toLocaleDateString()}` : "")))}
                         type={item.type}
                       />
                     ))}
@@ -288,34 +295,30 @@ export function Header() {
 
 function ResultItem({ isActive, onClick, icon, title, description, type }: any) {
   return (
-    <div 
-      onClick={onClick} 
-      className={`w-full flex items-center justify-between px-4 py-2 rounded-xl transition-all group relative cursor-pointer ${
-        isActive ? "bg-white/10 ring-1 ring-white/20 shadow-xl" : "hover:bg-neutral-800/40"
+    <div
+      onClick={onClick}
+      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all group relative cursor-pointer ${
+        isActive ? "bg-neutral-800/80 text-white" : "text-neutral-400 hover:bg-neutral-800/40 hover:text-neutral-200"
       }`}
     >
-      <div className="flex items-center gap-3 text-neutral-300">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-          isActive ? "bg-neutral-800 shadow-inner" : "bg-neutral-900/30"
-        }`}>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 flex items-center justify-center opacity-60">
           {icon}
         </div>
         <div className="flex flex-col items-start text-left">
-          <span className={`text-sm font-bold transition-colors ${isActive ? "text-white" : "text-neutral-300 group-hover:text-white"}`}>
+          <span className="text-sm font-medium">
             {title}
           </span>
           {description && (
-            <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${
-              isActive ? "text-neutral-400" : "text-neutral-600"
-            }`}>
+            <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${isActive ? "text-neutral-400" : "text-neutral-600"}`}>
               {description}
             </span>
           )}
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {type === 'view' && <div className="px-2 py-1 bg-indigo-500/10 text-indigo-500 text-[8px] font-black rounded uppercase tracking-widest border border-indigo-500/20">Expand</div>}
-        <ChevronRight size={18} className={`transition-all ${isActive ? "text-white translate-x-0 opacity-100" : "text-neutral-800 -translate-x-2 opacity-0"}`} />
+        {type === 'view' && <div className="px-2 py-0.5 bg-neutral-800 text-neutral-500 text-[8px] font-black rounded uppercase tracking-widest border border-neutral-700/50">Expand</div>}
+        <ChevronRight size={14} className={`transition-all ${isActive ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"}`} />
       </div>
     </div>
   );
