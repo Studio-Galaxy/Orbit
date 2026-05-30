@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Sparkles, Folder, Plus, Loader2, Trash2, X,
@@ -16,7 +16,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { useSearchParams } from "next/navigation";
 
-export default function VaultPage() {
+function VaultPageInternal() {
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const [vaultFiles, setVaultFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -522,5 +522,17 @@ export default function VaultPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function VaultPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      </div>
+    }>
+      <VaultPageInternal />
+    </Suspense>
   );
 }

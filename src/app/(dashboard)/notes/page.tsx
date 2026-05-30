@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, Loader2, Trash2, PanelLeftClose, PanelLeft, Menu, Upload, ChevronRight, ArrowLeft, Maximize, Minimize } from "lucide-react";
@@ -13,7 +13,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { useSearchParams } from "next/navigation";
 
-export default function NotesPage() {
+function NotesPageInternal() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiActionTitle, setAiActionTitle] = useState("");
@@ -374,5 +374,17 @@ export default function NotesPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function NotesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      </div>
+    }>
+      <NotesPageInternal />
+    </Suspense>
   );
 }
