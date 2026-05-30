@@ -32,10 +32,10 @@ export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const mainActions = [
-    { id: 'notes', title: 'Create new note', icon: <Command size={16} className="text-neutral-400" />, path: '/notes', type: 'link' },
-    { id: 'vault', title: 'Open Document Vault', icon: <Command size={16} className="text-neutral-400" />, path: '/vault', type: 'link' },
-    { id: 'assistant', title: 'Ask AI Assistant', icon: <Command size={16} className="text-neutral-400" />, path: '/assistant', type: 'link' },
-    { id: 'tools', title: 'PDF Tools', icon: <Command size={16} className="text-neutral-400" />, type: 'view' },
+    { id: 'notes', title: 'Notes', icon: <FileText size={18} className="text-indigo-400" />, type: 'view' },
+    { id: 'vault', title: 'Vault', icon: <Folder size={18} className="text-blue-400" />, type: 'view' },
+    { id: 'tools', title: 'PDF Tools', icon: <Zap size={18} className="text-amber-400" />, type: 'view' },
+    { id: 'assistant', title: 'Ask AI Assistant', icon: <Sparkles size={18} className="text-indigo-400" />, path: '/assistant', type: 'link' },
   ];
 
   const toolItems = [
@@ -83,27 +83,26 @@ export function Header() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (view === "notes" || (view === "main" && searchQuery)) {
-        const { data } = await supabase
-          .from('notes')
-          .select('id, title, updated_at')
-          .eq('user_id', user.id)
-          .ilike('title', `%${searchQuery}%`)
-          .order('updated_at', { ascending: false })
-          .limit(15);
-        setResults(prev => ({ ...prev, notes: data || [] }));
-      }
+      const { data: notesData } = await supabase
+        .from('notes')
+        .select('id, title, updated_at')
+        .eq('user_id', user.id)
+        .ilike('title', `%${searchQuery}%`)
+        .order('updated_at', { ascending: false })
+        .limit(view === "main" ? 5 : 20);
+      
+      const { data: filesData } = await supabase
+        .from('vault_files')
+        .select('id, filename, file_format')
+        .eq('user_id', user.id)
+        .ilike('filename', `%${searchQuery}%`)
+        .order('created_at', { ascending: false })
+        .limit(view === "main" ? 5 : 20);
 
-      if (view === "vault" || (view === "main" && searchQuery)) {
-        const { data } = await supabase
-          .from('vault_files')
-          .select('id, filename, file_format')
-          .eq('user_id', user.id)
-          .ilike('filename', `%${searchQuery}%`)
-          .order('created_at', { ascending: false })
-          .limit(15);
-        setResults(prev => ({ ...prev, files: data || [] }));
-      }
+      setResults({
+        notes: notesData || [],
+        files: filesData || []
+      });
       setIsSearching(false);
     };
 
@@ -112,22 +111,22 @@ export function Header() {
 
   const filteredItems = useMemo(() => {
     if (view === "main") {
-      if (!searchQuery) return mainActions.map(a => ({ ...a, type: 'action', isInitial: true }));
+      if (!searchQuery) return mainActions.map(a => ({ ...a, isInitial: true }));
 
       const actions = mainActions.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map(a => ({ ...a, type: 'action' }));
       const tools = toolItems.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(t => ({ ...t, type: 'tool' }));
-      const notes = results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note' }));
-      const files = results.files.map(f => ({ ...f, title: f.filename, type: 'file' }));
+      const notes = results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note', category: 'NOTE' }));
+      const files = results.files.map(f => ({ ...f, title: f.filename, type: 'file', category: f.file_format?.toUpperCase() || 'FILE' }));
 
       return [...actions, ...tools, ...notes, ...files];
     }
 
     if (view === "notes") {
-      return results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note' }));
+      return results.notes.map(n => ({ ...n, title: n.title || 'Untitled Note', type: 'note', category: 'NOTE' }));
     }
 
     if (view === "vault") {
-      return results.files.map(f => ({ ...f, title: f.filename, type: 'file' }));
+      return results.files.map(f => ({ ...f, title: f.filename, type: 'file', category: f.file_format?.toUpperCase() || 'FILE' }));
     }
 
     if (view === "tools") {
@@ -165,8 +164,10 @@ export function Header() {
     } else if (item.type === 'link' || item.type === 'tool' || item.type === 'action') {
       if (item.path) {
         executeCommand(item.path);
-      } else if (item.id === 'tools') {
-        setView('tools');
+      } else if (item.id === 'tools' || item.id === 'notes' || item.id === 'vault') {
+        setView(item.id as View);
+        setSearchQuery("");
+        setActiveIndex(0);
       }
     } else if (item.type === 'note') {
       executeCommand(`/notes?id=${item.id}`);
@@ -278,7 +279,7 @@ export function Header() {
                         onClick={() => handleSelect(item)}
                         icon={item.icon || (item.type === 'note' ? <FileText size={18} className="text-indigo-400" /> : <Folder size={18} className="text-blue-400" />)}
                         title={item.title}
-                        description={item.type === 'view' ? "Open to see items" : (item.isInitial ? "" : (item.category || (item.updated_at ? `Last updated ${new Date(item.updated_at).toLocaleDateString()}` : "")))}
+                        description={item.type === 'view' ? "" : (item.isInitial ? "" : (item.category || (item.updated_at ? `Last updated ${new Date(item.updated_at).toLocaleDateString()}` : "")))}
                         type={item.type}
                       />
                     ))}
@@ -317,7 +318,6 @@ function ResultItem({ isActive, onClick, icon, title, description, type }: any) 
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {type === 'view' && <div className="px-2 py-0.5 bg-neutral-800 text-neutral-500 text-[8px] font-black rounded uppercase tracking-widest border border-neutral-700/50">Expand</div>}
         <ChevronRight size={14} className={`transition-all ${isActive ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"}`} />
       </div>
     </div>
