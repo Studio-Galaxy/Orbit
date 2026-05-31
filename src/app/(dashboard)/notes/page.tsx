@@ -303,16 +303,15 @@ function NotesPageInternal() {
                    <button onClick={() => setSearchQuery("")} className="text-indigo-400 text-xs font-black uppercase tracking-widest hover:text-indigo-300 transition-colors">Clear Search</button>
                 </div>
               ) : (
-                <div className={`mt-4 ${viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6' : 'flex flex-col gap-3'}`}>
+                <div className={`mt-4 ${viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6' : 'flex flex-col gap-3'}`}>
                   {filteredNotes.map((note) => {
                     const updatedAt = new Date(note.updated_at || note.created_at);
                     if (viewMode === 'list') {
                       return (
-                        <motion.div 
-                          layout
+                        <div 
                           key={note.id}
                           onClick={() => setActiveNote(note)}
-                          className="flex items-center gap-6 p-4 rounded-3xl bg-neutral-900/20 border border-neutral-900 hover:bg-neutral-900/40 hover:border-neutral-800 transition-all cursor-pointer group"
+                          className="flex items-center gap-6 p-4 rounded-3xl bg-neutral-900/20 border border-neutral-900 hover:bg-neutral-900/40 hover:border-neutral-800 cursor-pointer group"
                         >
                           <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                             <FileText size={20} />
@@ -326,19 +325,18 @@ function NotesPageInternal() {
                           </div>
                           <button 
                             onClick={(e) => { e.stopPropagation(); setNoteToDelete(note.id); }}
-                            className="p-2.5 text-neutral-600 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-xl opacity-0 group-hover:opacity-100"
+                            className="p-2.5 text-neutral-600 hover:text-red-500 hover:bg-red-500/10 rounded-xl opacity-0 group-hover:opacity-100"
                           >
                             <Trash2 size={16} />
                           </button>
-                        </motion.div>
+                        </div>
                       );
                     }
                     return (
-                      <motion.div 
-                        layout
+                      <div 
                         key={note.id}
                         onClick={() => setActiveNote(note)}
-                        className="group relative aspect-[4/3] bg-neutral-900/20 border border-neutral-900 rounded-[2rem] p-6 flex flex-col hover:bg-neutral-900/40 hover:border-neutral-800 transition-all cursor-pointer overflow-hidden shadow-sm"
+                        className="group relative aspect-[1/1.414] bg-neutral-900/20 border border-neutral-900 rounded-[2rem] p-8 flex flex-col hover:bg-neutral-900/40 hover:border-neutral-800 cursor-pointer overflow-hidden shadow-sm"
                       >
                          <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform group-hover:bg-indigo-500 group-hover:text-white shadow-xl">
                             <FileText size={20} />
@@ -351,12 +349,12 @@ function NotesPageInternal() {
                             </div>
                             <button 
                               onClick={(e) => { e.stopPropagation(); setNoteToDelete(note.id); }}
-                              className="p-2 text-neutral-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                              className="p-2 text-neutral-600 hover:text-red-500 opacity-0 group-hover:opacity-100"
                             >
                                <Trash2 size={14} />
                             </button>
                          </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>

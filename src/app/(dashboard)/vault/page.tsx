@@ -241,7 +241,7 @@ function VaultPageInternal() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* File Explorer */}
-        <div className={`flex flex-col min-w-0 transition-all duration-500 ease-in-out ${activeVaultFile ? 'w-full md:w-1/2 px-4 md:px-12 pt-4 md:pt-8' : 'w-full px-4 md:px-8'}`}>
+        <div className={`flex flex-col min-w-0 ${activeVaultFile ? 'w-full md:w-1/2 px-4 md:px-12 pt-4 md:pt-8' : 'w-full px-4 md:px-8'}`}>
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="animate-spin text-neutral-800" size={48} />
@@ -259,15 +259,15 @@ function VaultPageInternal() {
               </label>
             </div>
           ) : (
-            <div className={`overflow-y-auto pb-12 pt-4 no-scrollbar ${viewMode === 'grid' ? `grid gap-6 ${activeVaultFile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}` : viewMode === 'list' ? 'flex flex-col gap-2' : ''}`}>
+            <div className={`overflow-y-auto pb-12 pt-4 no-scrollbar ${viewMode === 'grid' ? `grid gap-6 ${activeVaultFile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}` : viewMode === 'list' ? 'flex flex-col gap-2' : ''}`}>
               {viewMode === 'dir' ? (
                 !activeDirectory ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full h-fit">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full h-fit">
                     {Object.entries(groupedFiles).map(([folderName, files]: any) => (
                       <button
                         key={folderName}
                         onClick={() => setActiveDirectory(folderName)}
-                        className="w-full aspect-[4/3] bg-neutral-900/40 border border-neutral-800 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 hover:bg-neutral-900/60 transition-all group"
+                        className="w-full aspect-[1/1.414] bg-neutral-900/40 border border-neutral-800 rounded-[2.5rem] flex flex-col items-center justify-center gap-8 hover:bg-neutral-900/60 group"
                       >
                         <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-white/50 group-hover:scale-110 group-hover:bg-white/10 transition-all shadow-2xl">
                           <Folder size={32} />
@@ -287,18 +287,18 @@ function VaultPageInternal() {
                     >
                       <X size={14} /> Back to Library / {activeDirectory}
                     </button>
-                    <div className={`grid gap-6 ${activeVaultFile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
+                    <div className={`grid gap-6 ${activeVaultFile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}`}>
                       {(groupedFiles[activeDirectory!] || []).map((file: any) => {
                         const ext = file.file_format?.toLowerCase() || 'bin';
                         const isActive = activeVaultFile?.id === file.id;
                         return (
-                          <motion.div layout key={file.id} className="group relative">
+                          <div key={file.id} className="group relative">
                             <button
                               onClick={() => selectVaultFile(file)}
-                              className={`w-full aspect-[4/3] flex flex-col items-center justify-center p-6 rounded-[2rem] border transition-all overflow-hidden relative ${isActive ? "bg-white/5 border-white/20 shadow-2xl" : "bg-neutral-900/20 border-neutral-900 hover:bg-neutral-900/40 hover:border-neutral-800"}`}
+                              className={`w-full aspect-[1/1.414] flex flex-col items-center justify-center p-8 rounded-[2rem] border overflow-hidden relative ${isActive ? "bg-white/5 border-white/20 shadow-2xl" : "bg-neutral-900/20 border-neutral-900 hover:bg-neutral-900/40 hover:border-neutral-800"}`}
                             >
-                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110 shadow-lg ${ext === 'pdf' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                                <FileText size={20} />
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 shadow-lg ${ext === 'pdf' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                <FileText size={24} />
                               </div>
                               <div className="text-center w-full px-2 text-white">
                                 <div className="text-[11px] font-bold truncate mb-1">{file.filename}</div>
@@ -306,7 +306,7 @@ function VaultPageInternal() {
                               </div>
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); setFileToDelete(file.id); }} className="absolute top-4 right-4 p-2 text-neutral-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                          </motion.div>
+                          </div>
                         );
                       })}
                     </div>
@@ -318,7 +318,7 @@ function VaultPageInternal() {
                   const isActive = activeVaultFile?.id === file.id;
                   if (viewMode === 'list') {
                     return (
-                      <div key={file.id} onClick={() => selectVaultFile(file)} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${isActive ? 'bg-neutral-900 border-neutral-700 ring-1 ring-white/10' : 'bg-neutral-950/40 border-neutral-900 hover:bg-neutral-900/40'}`}>
+                      <div key={file.id} onClick={() => selectVaultFile(file)} className={`flex items-center gap-4 p-4 rounded-2xl border cursor-pointer ${isActive ? 'bg-neutral-900 border-neutral-700 ring-1 ring-white/10' : 'bg-neutral-950/40 border-neutral-900 hover:bg-neutral-900/40'}`}>
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${ext === 'pdf' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}><FileText size={20} /></div>
                         <div className="flex-1 min-w-0 text-left">
                           <div className="text-sm font-bold text-white truncate">{file.filename}</div>
@@ -329,24 +329,24 @@ function VaultPageInternal() {
                     );
                   }
                   return (
-                    <motion.div layout key={file.id} className="group relative">
+                    <div key={file.id} className="group relative">
                       <button
                         onClick={() => selectVaultFile(file)}
-                        className={`w-full aspect-[4/3] flex flex-col items-center justify-center p-6 rounded-[2rem] border transition-all overflow-hidden relative ${isActive ? "bg-white/5 border-white/20 shadow-2xl" : "bg-neutral-900/20 border-neutral-900 hover:bg-neutral-900/40 hover:border-neutral-800"}`}
+                        className={`w-full aspect-[1/1.414] flex flex-col items-center justify-center p-8 rounded-[2rem] border overflow-hidden relative ${isActive ? "bg-white/5 border-white/20 shadow-2xl" : "bg-neutral-900/20 border-neutral-900 hover:bg-neutral-900/40 hover:border-neutral-800"}`}
                       >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110 shadow-lg ${ext === 'pdf' ? 'bg-red-500/10 text-red-500' : ext === 'docx' ? 'bg-blue-500/10 text-blue-500' : 'bg-indigo-500/10 text-indigo-500'}`}>
-                          <FileText size={20} />
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 shadow-lg ${ext === 'pdf' ? 'bg-red-500/10 text-red-500' : ext === 'docx' ? 'bg-blue-500/10 text-blue-500' : 'bg-indigo-500/10 text-indigo-500'}`}>
+                          <FileText size={24} />
                         </div>
                         <div className="text-center w-full px-2">
-                          <div className={`text-[11px] font-bold truncate mb-1 ${isActive ? 'text-white' : 'text-neutral-400'}`}>{file.filename}</div>
-                          <div className="text-[8px] font-black uppercase tracking-widest opacity-40">{ext}</div>
+                          <div className={`text-xs font-bold truncate mb-2 ${isActive ? 'text-white' : 'text-neutral-400'}`}>{file.filename}</div>
+                          <div className="text-[10px] font-black uppercase tracking-widest opacity-40">{ext}</div>
                         </div>
-                        {isActive && <motion.div layoutId="active-indicator" className="absolute bottom-0 inset-x-0 h-1 bg-white" />}
+                        {isActive && <div className="absolute bottom-0 inset-x-0 h-1 bg-white" />}
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); setFileToDelete(file.id); }} className="absolute top-4 right-4 p-2 text-neutral-600 hover:text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all border border-neutral-800 bg-black/40 backdrop-blur-md">
                         <Trash2 size={14} />
                       </button>
-                    </motion.div>
+                    </div>
                   );
                 })
               )}
