@@ -131,7 +131,7 @@ export default function DashboardPage() {
   const userName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6 md:p-8 lg:p-12 relative">
+    <div className="w-full max-w-6xl mx-auto px-4 md:px-8 lg:px-12 py-6 md:py-12 relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X, Flag, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2, Trash2, Calendar, X, Flag, ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 import { createClient } from "@/utils/supabase/client";
 
 type Task = {
@@ -14,6 +15,7 @@ type Task = {
 };
 
 export default function PlannerPage() {
+  const { toggleMobile } = useSidebar();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -159,9 +161,17 @@ export default function PlannerPage() {
     <div className="w-full max-w-4xl mx-auto p-6 md:p-8 lg:p-12 min-h-full">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Study Planner
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+             <button 
+               onClick={toggleMobile}
+               className="md:hidden p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"
+             >
+               <Menu size={24} />
+             </button>
+             <h1 className="text-3xl font-bold tracking-tight text-white uppercase tracking-tighter">
+               Study Planner
+             </h1>
+          </div>
           <p className="text-neutral-400">
             Keep track of your study objectives and assignments.
           </p>

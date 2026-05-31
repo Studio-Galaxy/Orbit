@@ -7,8 +7,9 @@ import {
   ChevronRight, Loader2, Clock, Zap,
   Files, Scissors, Image as ImageIcon, FileImage,
   FileBox, FileSpreadsheet, Presentation, FileDown,
-  LayoutDashboard, ArrowLeft
+  LayoutDashboard, ArrowLeft, Menu
 } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
@@ -32,9 +33,10 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
+  const { isMobileOpen, toggleMobile } = useSidebar();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isDashboard = pathname === '/dashboard';
+  const isDashboard = pathname === '/' || pathname === '/dashboard';
 
   const mainActions = [
     { id: 'notes', title: 'Notes', icon: <FileText size={18} className="text-indigo-400" />, type: 'view' },
@@ -200,7 +202,14 @@ export function Header() {
       {isDashboard && (
         <header className="sticky top-0 z-30 w-full flex h-16 items-center justify-between px-4 md:px-8 bg-black border-b border-neutral-900 border-none md:border-solid animate-in fade-in slide-in-from-top-4 duration-500">
           {/* Left Side - Space for Sidebar toggle or Logo */}
-          <div className="w-10 md:w-80 flex-shrink-0" />
+          <div className="w-10 md:w-80 flex-shrink-0 flex items-center">
+            <button 
+              onClick={toggleMobile}
+              className="md:hidden p-2 text-neutral-400 hover:text-white transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
 
           {/* Center - Search Trigger & AI Assistant */}
           <div className="flex-1 flex items-center justify-center gap-3">

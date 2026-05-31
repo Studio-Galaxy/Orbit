@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Mail, Bell, Shield, Moon, Monitor, X, Check } from "lucide-react";
+import { User, Mail, Bell, Shield, Moon, Monitor, X, Check, Menu } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { logout } from "@/app/auth/actions";
@@ -10,18 +11,19 @@ import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { toggleMobile } = useSidebar();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Form states
   const [newName, setNewName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  
+
   // Preference states
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [assistantView, setAssistantView] = useState<'mobile' | 'mac'>('mobile');
@@ -42,11 +44,11 @@ export default function SettingsPage() {
       }
     };
     fetchUser();
-    
+
     // Load preferences
     const prefs = localStorage.getItem("orbit-notifications");
     if (prefs === "true") setNotificationsEnabled(true);
-    
+
     const viewPref = localStorage.getItem("orbit-assistant-view");
     if (viewPref === "mac") setAssistantView('mac');
   }, []);
@@ -68,7 +70,7 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     if (!newName.trim()) return toast.error("Name cannot be empty");
     setIsSaving(true);
-    
+
     const supabase = createClient();
     const { data, error } = await supabase.auth.updateUser({
       data: { full_name: newName }
@@ -87,7 +89,7 @@ export default function SettingsPage() {
   const handleSavePassword = async () => {
     if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
     setIsSaving(true);
-    
+
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
       password: newPassword
@@ -122,24 +124,32 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 md:p-8 lg:p-12 h-[calc(100vh-4rem)] overflow-y-auto no-scrollbar relative">
+    <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-12 py-6 md:py-12 h-[calc(100vh-4rem)] overflow-y-auto no-scrollbar relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Settings</h1>
+        <div className="flex items-center gap-3 mb-2">
+           <button 
+             onClick={toggleMobile}
+             className="md:hidden p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"
+           >
+             <Menu size={24} />
+           </button>
+           <h1 className="text-3xl font-bold tracking-tight text-white">Settings</h1>
+        </div>
         <p className="text-neutral-400 text-sm mb-12">Manage your account preferences and settings.</p>
 
         <div className="space-y-8">
           {/* Profile Section */}
           <section>
             <h2 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-b border-neutral-800 pb-2">Profile</h2>
-            <div className="bg-neutral-900/40 border border-neutral-800/80 rounded-2xl p-6 relative">
-              <div className="absolute top-6 right-6">
-                <button 
+            <div className="bg-neutral-900/40 border border-neutral-800/80 rounded-2xl p-4 md:p-6 relative flex flex-col md:block">
+              <div className="md:absolute md:top-6 md:right-6 order-2 mt-4 md:order-none md:mt-0">
+                <button
                   onClick={() => setIsEditingProfile(true)}
-                  className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-medium rounded-lg transition-colors border border-neutral-700"
+                  className="w-full md:w-auto px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-medium rounded-lg transition-colors border border-neutral-700 font-semibold"
                 >
                   Edit Profile
                 </button>
@@ -171,7 +181,7 @@ export default function SettingsPage() {
                   <div className="text-xs text-neutral-500">{user?.email}</div>
                 </div>
               </div>
-              <div 
+              <div
                 onClick={() => setIsChangingPassword(true)}
                 className="flex items-center gap-4 p-4 border-b border-neutral-800/80 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
               >
@@ -181,7 +191,7 @@ export default function SettingsPage() {
                   <div className="text-xs text-neutral-500">Change your password</div>
                 </div>
               </div>
-              <div 
+              <div
                 onClick={handleLogout}
                 className="flex items-center gap-4 p-4 hover:bg-red-500/10 transition-colors cursor-pointer text-red-500"
               >
@@ -197,7 +207,7 @@ export default function SettingsPage() {
           <section>
             <h2 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-b border-neutral-800 pb-2">Preferences</h2>
             <div className="bg-neutral-900/40 border border-neutral-800/80 rounded-2xl overflow-hidden">
-              <div 
+              <div
                 onClick={() => toast.info("Orbit is exclusively styled for a deep-space dark mode experience.")}
                 className="flex items-center justify-between p-4 border-b border-neutral-800/80 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
               >
@@ -213,7 +223,7 @@ export default function SettingsPage() {
                   <div className="w-4 h-4 bg-white rounded-full"></div>
                 </div>
               </div>
-              <div 
+              <div
                 onClick={toggleNotifications}
                 className="flex items-center justify-between p-4 border-b border-neutral-800/80 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
               >
@@ -230,7 +240,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div 
+              <div
                 onClick={toggleAssistantView}
                 className="flex items-center justify-between p-4 hover:bg-neutral-800/40 transition-colors cursor-pointer text-neutral-300 hover:text-white"
               >
@@ -256,40 +266,40 @@ export default function SettingsPage() {
       <AnimatePresence>
         {isEditingProfile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
               onClick={() => setIsEditingProfile(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl flex flex-col"
             >
-              <button 
+              <button
                 onClick={() => setIsEditingProfile(false)}
                 className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors p-1"
               >
                 <X size={18} />
               </button>
-              
+
               <h3 className="text-xl font-bold text-white mb-6">Edit Profile</h3>
-              
+
               <div className="mb-6">
                 <label className="block text-xs font-medium text-neutral-400 mb-2">Full Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full bg-black border border-neutral-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-500 transition-colors"
                   placeholder="Enter your name"
                 />
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleSaveProfile}
                 disabled={isSaving}
                 className="w-full py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -305,41 +315,41 @@ export default function SettingsPage() {
       <AnimatePresence>
         {isChangingPassword && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
               onClick={() => setIsChangingPassword(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl flex flex-col"
             >
-              <button 
+              <button
                 onClick={() => setIsChangingPassword(false)}
                 className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors p-1"
               >
                 <X size={18} />
               </button>
-              
+
               <h3 className="text-xl font-bold text-white mb-2">Change Password</h3>
               <p className="text-xs text-neutral-400 mb-6">Enter a new secure password below.</p>
-              
+
               <div className="mb-6">
                 <label className="block text-xs font-medium text-neutral-400 mb-2">New Password</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full bg-black border border-neutral-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-500 transition-colors"
                   placeholder="Minimum 6 characters"
                 />
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleSavePassword}
                 disabled={isSaving}
                 className="w-full py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

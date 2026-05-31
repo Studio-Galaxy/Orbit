@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileText, Sparkles, Folder, ArchiveX, X, Plus, Clock, 
   Loader2, Trash2, LayoutGrid, List, ArrowLeft, Save, 
-  Search, MoreHorizontal, ChevronRight, Calendar
+  Search, MoreHorizontal, ChevronRight, Calendar, Menu
 } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +19,7 @@ import 'katex/dist/katex.min.css';
 import { useSearchParams, useRouter } from "next/navigation";
 
 function NotesPageInternal() {
+  const { toggleMobile } = useSidebar();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -216,26 +218,34 @@ function NotesPageInternal() {
     <div className="h-full w-full bg-black flex flex-col overflow-hidden relative">
       {/* Header Pattern - Vault Inspired */}
       {!activeNoteId && (
-        <div className="pt-8 px-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="pt-8 px-4 md:px-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
-              Library
-            </h1>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={toggleMobile}
+                className="md:hidden p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"
+              >
+                <Menu size={24} />
+              </button>
+              <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
+                Library
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative group">
+          <div className="flex flex-wrap items-center gap-3 md:gap-4">
+            <div className="relative group flex-1 md:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-indigo-500 transition-colors" size={14} />
               <input 
                 type="text" 
                 placeholder="Search notes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-neutral-900/50 border border-neutral-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white outline-none focus:border-neutral-700 focus:ring-1 focus:ring-white/5 transition-all w-64"
+                className="bg-neutral-900/50 border border-neutral-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white outline-none focus:border-neutral-700 focus:ring-1 focus:ring-white/5 transition-all w-full md:w-64"
               />
             </div>
             
-            <div className="bg-neutral-900/50 backdrop-blur-md border border-neutral-800 rounded-2xl p-1 flex items-center gap-1">
+            <div className="bg-neutral-900/50 backdrop-blur-md border border-neutral-800 rounded-2xl p-1 flex items-center gap-1 flex-shrink-0">
               <button onClick={() => setViewMode('grid')} className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-neutral-800 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
                 <LayoutGrid size={18} />
               </button>
@@ -244,7 +254,7 @@ function NotesPageInternal() {
               </button>
             </div>
 
-            <button onClick={handleCreateNote} className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-neutral-200 text-black rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xl active:scale-95 uppercase tracking-widest">
+            <button onClick={handleCreateNote} className="flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-neutral-200 text-black rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xl active:scale-95 uppercase tracking-widest flex-1 md:flex-none">
               <Plus size={16} strokeWidth={3} /> NEW NOTE
             </button>
           </div>
@@ -280,7 +290,7 @@ function NotesPageInternal() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="h-full w-full px-8 pb-12 overflow-y-auto no-scrollbar"
+              className="h-full w-full px-4 md:px-8 pb-12 overflow-y-auto no-scrollbar"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">

@@ -36,8 +36,7 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isCollapsed, toggleCollapse } = useSidebar();
-  const [isOpen, setIsOpen] = useState(false);
+  const { isCollapsed, toggleCollapse, isMobileOpen, setIsMobileOpen } = useSidebar();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -65,14 +64,9 @@ export function Sidebar() {
 
   return (
     <>
-      <div className="md:hidden fixed top-4 left-4 z-50">
-        <button onClick={() => setIsOpen(!isOpen)} className="p-2.5 bg-neutral-900 border border-neutral-800 rounded-xl text-white shadow-xl">
-          {isOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
 
       <AnimatePresence mode="wait">
-        {(isOpen || (mounted && window.innerWidth >= 768)) && (
+        {(isMobileOpen || (mounted && window.innerWidth >= 768)) && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: isCollapsed ? 80 : 260, opacity: 1 }}
@@ -99,7 +93,7 @@ export function Sidebar() {
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                 return (
-                  <Link key={item.href} href={item.href} onClick={() => typeof window !== 'undefined' && window.innerWidth < 768 && setIsOpen(false)}
+                  <Link key={item.href} href={item.href} onClick={() => typeof window !== 'undefined' && window.innerWidth < 768 && setIsMobileOpen(false)}
                     className={`relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all group/item ${
                       isActive ? "text-white" : "text-neutral-500 hover:text-neutral-200 hover:bg-neutral-900/40"
                     } ${isCollapsed ? 'justify-center' : ''}`}

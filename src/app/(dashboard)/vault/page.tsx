@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Sparkles, Folder, Plus, Loader2, Trash2, X,
-  Upload, Maximize, Minimize, LayoutGrid, List, Save
+  Upload, Maximize, Minimize, LayoutGrid, List, Save, Menu
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
@@ -18,6 +18,7 @@ import { useSearchParams } from "next/navigation";
 
 function VaultPageInternal() {
   const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { toggleMobile } = useSidebar();
   const [vaultFiles, setVaultFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeVaultFile, setActiveVaultFile] = useState<any>(null);
@@ -213,15 +214,23 @@ function VaultPageInternal() {
   return (
     <div className="h-full w-full bg-black flex flex-col overflow-hidden relative">
       {/* Dynamic Header */}
-      <div className={`pt-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-500 ${activeVaultFile ? 'px-4 md:px-12' : 'px-4 md:px-8'}`}>
+      <div className={`pt-8 px-4 md:px-12 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-500`}>
         <div className={`flex items-center gap-4 transition-all duration-500 ${activeVaultFile ? 'hidden md:flex opacity-0 scale-95 pointer-events-none w-0' : 'opacity-100 scale-100'}`}>
-          <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-3">
-            Vault
-          </h1>
+          <div className="flex items-center gap-3">
+             <button 
+               onClick={toggleMobile}
+               className="md:hidden p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"
+             >
+               <Menu size={24} />
+             </button>
+             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-3">
+               Vault
+             </h1>
+          </div>
         </div>
 
-        <div className={`flex items-center gap-3 transition-all duration-500 ${activeVaultFile ? 'flex-1 justify-start' : 'justify-end'}`}>
-          <div className="bg-neutral-900/50 backdrop-blur-md border border-neutral-800 rounded-2xl p-1 flex items-center gap-1">
+        <div className={`flex flex-wrap items-center gap-3 transition-all duration-500 ${activeVaultFile ? 'flex-1 justify-start' : 'justify-end w-full md:w-auto'}`}>
+          <div className="bg-neutral-900/50 backdrop-blur-md border border-neutral-800 rounded-2xl p-1 flex items-center gap-1 flex-1 md:flex-none justify-center md:justify-start">
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-neutral-800 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
               <LayoutGrid size={18} />
             </button>
@@ -232,7 +241,7 @@ function VaultPageInternal() {
               <Folder size={18} />
             </button>
           </div>
-          <label className="flex items-center gap-2 px-5 py-3 bg-white hover:bg-neutral-200 text-black rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xl active:scale-95">
+          <label className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-neutral-200 text-black rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xl active:scale-95 flex-1 md:flex-none">
             {isUploadingVault ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={3} />} UPLOAD
             <input type="file" className="hidden" accept=".pdf,.docx,.pptx" onChange={handleVaultUpload} disabled={isUploadingVault} />
           </label>

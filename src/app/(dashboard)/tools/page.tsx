@@ -13,8 +13,10 @@ import {
   ArrowRight,
   Image as ImageIcon,
   FileSpreadsheet,
-  Presentation
+  Presentation,
+  Menu
 } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 
 const categories = [
   {
@@ -170,6 +172,7 @@ const colorMap: Record<string, string> = {
 };
 
 export default function ToolsDashboard() {
+  const { toggleMobile } = useSidebar();
   return (
     <div className="flex-1 w-full bg-[#050505] min-h-screen text-white border-l border-neutral-900 overflow-y-auto no-scrollbar relative">
       <div className="p-8 md:p-16 max-w-7xl mx-auto h-full">
@@ -179,9 +182,17 @@ export default function ToolsDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-white">
-              Document <span className="text-neutral-500">Workspace</span>
-            </h1>
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                onClick={toggleMobile}
+                className="md:hidden p-2 -ml-2 text-neutral-400 hover:text-white transition-colors"
+              >
+                <Menu size={24} />
+              </button>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">
+                Document <span className="text-neutral-500">Workspace</span>
+              </h1>
+            </div>
             <p className="text-neutral-500 text-base max-w-2xl font-medium">
               Professional tools to Edit, Convert, and Optimize your documents.
             </p>
@@ -195,7 +206,7 @@ export default function ToolsDashboard() {
                 <h2 className="text-2xl font-black text-white mb-2 tracking-tight">{category.name}</h2>
                 <p className="text-sm text-neutral-600 font-medium">{category.description}</p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10 w-full">
                 {category.items.map((tool, index) => (
                   <ToolCard key={tool.id} tool={tool} index={index + (catIndex * 3)} />

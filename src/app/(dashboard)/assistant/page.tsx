@@ -3,7 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload, Copy, Check, ArrowRight } from "lucide-react";
+import { Sparkles, Send, Trash2, FileText, FileBox, Command, CheckSquare, Save, Upload, Copy, Check, ArrowRight, Menu } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
@@ -44,7 +45,7 @@ const CodeBlock = ({ className, children, ...props }: any) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
-  
+
   const handleCopy = () => {
     navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
     setCopied(true);
@@ -57,7 +58,7 @@ const CodeBlock = ({ className, children, ...props }: any) => {
   return !inline ? (
     <div className="relative group/code my-6 not-prose">
       <div className="absolute right-4 top-4 opacity-0 group-hover/code:opacity-100 transition-opacity z-20">
-        <button 
+        <button
           onClick={handleCopy}
           className="p-2 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-xl border border-white/10 text-neutral-500 hover:text-white transition-all outline-none"
         >
@@ -66,22 +67,22 @@ const CodeBlock = ({ className, children, ...props }: any) => {
       </div>
       <div className="rounded-2xl overflow-hidden border border-neutral-900 shadow-2xl">
         <SyntaxHighlighter
-            language={language}
-            style={oneDark}
-            customStyle={{
-                margin: 0,
-                padding: '1.5rem',
-                backgroundColor: '#050505',
-                fontSize: '13px',
-                lineHeight: '1.6',
-            }}
-            codeTagProps={{
-                style: {
-                    fontFamily: 'inherit',
-                }
-            }}
+          language={language}
+          style={oneDark}
+          customStyle={{
+            margin: 0,
+            padding: '1.5rem',
+            backgroundColor: '#050505',
+            fontSize: '13px',
+            lineHeight: '1.6',
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: 'inherit',
+            }
+          }}
         >
-            {String(children).replace(/\n$/, '')}
+          {String(children).replace(/\n$/, '')}
         </SyntaxHighlighter>
       </div>
     </div>
@@ -93,6 +94,7 @@ const CodeBlock = ({ className, children, ...props }: any) => {
 };
 
 export default function AssistantPage() {
+  const { toggleMobile } = useSidebar();
   const router = useRouter();
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -107,7 +109,7 @@ export default function AssistantPage() {
     }
   ]);
 
-  const [availableDocs, setAvailableDocs] = useState<{type: string, id: string, label: string, url?: string}[]>([]);
+  const [availableDocs, setAvailableDocs] = useState<{ type: string, id: string, label: string, url?: string }[]>([]);
   const [showMentions, setShowMentions] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
   const [showTools, setShowTools] = useState(false);
@@ -139,7 +141,7 @@ export default function AssistantPage() {
       const { data: notesData } = await supabase.from('notes').select('id, title').eq('user_id', user.id).order('updated_at', { ascending: false });
       const { data: vaultData } = await supabase.from('vault_files').select('id, filename, file_url').eq('user_id', user.id).order('created_at', { ascending: false });
 
-      const docs: {type: string, id: string, label: string, url?: string}[] = [];
+      const docs: { type: string, id: string, label: string, url?: string }[] = [];
       if (notesData) notesData.forEach(n => docs.push({ type: 'note', id: n.id, label: n.title }));
       if (vaultData) vaultData.forEach(v => docs.push({ type: 'pdf', id: v.id, label: v.filename, url: v.file_url }));
 
@@ -149,7 +151,7 @@ export default function AssistantPage() {
 
     const saved = localStorage.getItem("orbit-chat-messages");
     if (saved) {
-      try { setMessages(JSON.parse(saved)); } catch (e) {}
+      try { setMessages(JSON.parse(saved)); } catch (e) { }
     }
     setIsLoaded(true);
   }, []);
@@ -442,7 +444,7 @@ export default function AssistantPage() {
         );
       }
       if (parsed.type === 'viva' && Array.isArray(parsed.data)) {
-         return (
+        return (
           <div className="w-full mt-2 space-y-3">
             <div className="flex items-center gap-2 text-rose-400 mb-2 font-medium">
               <CheckSquare size={16} /> {parsed.filename ? `Viva Questions for ${parsed.filename}` : "Viva Questions"}
@@ -461,10 +463,10 @@ export default function AssistantPage() {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
                       const markdown = parsed.data.map((q: any, i: number) => {
-                        return `### Q${i+1}: ${q.question}\n\n**Expected Answer:** ${q.answer}\n\n`;
+                        return `### Q${i + 1}: ${q.question}\n\n**Expected Answer:** ${q.answer}\n\n`;
                       }).join('\n');
                       let htmlContent = marked.parse(markdown);
-                      
+
                       // Convert $...$ to Tiptap-friendly math spans
                       if (typeof htmlContent === 'string') {
                         htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
@@ -477,8 +479,8 @@ export default function AssistantPage() {
                       });
                       toast.success("Saved to Notes", { id: toastId });
                     }
-                  } catch(e) {
-                     toast.error("Failed to save note", { id: toastId });
+                  } catch (e) {
+                    toast.error("Failed to save note", { id: toastId });
                   }
                 }}
                 className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg"
@@ -490,64 +492,64 @@ export default function AssistantPage() {
         );
       }
       if (parsed.type === 'save_note') {
-         return (
+        return (
           <div className="w-full mt-2 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-             <div className="text-sm text-indigo-100 mb-4 markdown-preview prose prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-indigo-300 prose-li:my-0.5 prose-strong:text-white max-w-none">
-                <ReactMarkdown 
-                    remarkPlugins={[remarkGfm, remarkMath]} 
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                        pre: ({ children }) => <>{children}</>,
-                        code: CodeBlock
-                    }}
-                >
-                    {parsed.explanation || "I've generated a detailed explanation for this topic."}
-                </ReactMarkdown>
-             </div>
-             <div className="flex flex-col gap-2 border-t border-indigo-500/20 pt-4">
-               <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">Suggested Note</div>
-               <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 p-3 rounded-lg overflow-hidden shadow-inner">
-                  <FileText size={16} className="text-neutral-500 shrink-0" />
-                  <div className="text-sm text-white font-medium truncate flex-1">{parsed.filename || "AI_Generated_Note"}</div>
-                  <button
-                    onClick={async () => {
-                      const toastId = toast.loading("Saving to Notes...");
-                      try {
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (user) {
-                          const markdown = parsed.content || parsed.explanation || "";
-                          let htmlContent = marked.parse(markdown);
-                          
-                          // Convert $...$ to Tiptap-friendly math spans
-                          if (typeof htmlContent === 'string') {
-                            htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
-                          }
+            <div className="text-sm text-indigo-100 mb-4 markdown-preview prose prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-indigo-300 prose-li:my-0.5 prose-strong:text-white max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  pre: ({ children }) => <>{children}</>,
+                  code: CodeBlock
+                }}
+              >
+                {parsed.explanation || "I've generated a detailed explanation for this topic."}
+              </ReactMarkdown>
+            </div>
+            <div className="flex flex-col gap-2 border-t border-indigo-500/20 pt-4">
+              <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">Suggested Note</div>
+              <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 p-3 rounded-lg overflow-hidden shadow-inner">
+                <FileText size={16} className="text-neutral-500 shrink-0" />
+                <div className="text-sm text-white font-medium truncate flex-1">{parsed.filename || "AI_Generated_Note"}</div>
+                <button
+                  onClick={async () => {
+                    const toastId = toast.loading("Saving to Notes...");
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (user) {
+                        const markdown = parsed.content || parsed.explanation || "";
+                        let htmlContent = marked.parse(markdown);
 
-                          await supabase.from('notes').insert({
-                            user_id: user.id,
-                            title: parsed.filename || "AI Generated Note",
-                            content: htmlContent
-                          });
-                          toast.success("Saved to Notes", { id: toastId });
+                        // Convert $...$ to Tiptap-friendly math spans
+                        if (typeof htmlContent === 'string') {
+                          htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
                         }
-                      } catch(e) {
-                         toast.error("Failed to save note", { id: toastId });
+
+                        await supabase.from('notes').insert({
+                          user_id: user.id,
+                          title: parsed.filename || "AI Generated Note",
+                          content: htmlContent
+                        });
+                        toast.success("Saved to Notes", { id: toastId });
                       }
-                    }}
-                    className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg"
-                  >
-                    <Save size={14} /> Save to Notes
-                  </button>
-               </div>
-             </div>
+                    } catch (e) {
+                      toast.error("Failed to save note", { id: toastId });
+                    }
+                  }}
+                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg"
+                >
+                  <Save size={14} /> Save to Notes
+                </button>
+              </div>
+            </div>
           </div>
-         );
+        );
       }
       if (parsed.type === 'tool_result') {
         return (
           <div className="w-full mt-2 p-5 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] pointer-events-none" />
-            
+
             <div className="flex items-center gap-4 mb-6 relative">
               <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner">
                 <FileBox size={24} />
@@ -565,11 +567,11 @@ export default function AssistantPage() {
                   try {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) throw new Error("Please login");
-                    
+
                     const res = await fetch(parsed.data);
                     const blob = await res.blob();
                     const file = new File([blob], parsed.filename, { type: blob.type });
-                    
+
                     const filePath = `${user.id}/${Date.now()}_${parsed.filename}`;
                     const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
                     if (uploadError) throw uploadError;
@@ -601,7 +603,7 @@ export default function AssistantPage() {
               >
                 <Save size={14} className="group-hover:scale-110 transition-transform" /> Save to Vault
               </button>
-              
+
               <button
                 onClick={async () => {
                   const res = await fetch(parsed.data);
@@ -622,7 +624,7 @@ export default function AssistantPage() {
         return (
           <div className="w-full mt-2 p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border border-indigo-500/20 rounded-2xl shadow-xl overflow-hidden relative group/action">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none group-hover/action:bg-indigo-500/20 transition-all" />
-            
+
             <div className="flex items-center gap-4 mb-4 relative">
               <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner group-hover/action:border-indigo-500/50 transition-colors">
                 <Command size={24} />
@@ -639,16 +641,16 @@ export default function AssistantPage() {
             </div>
 
             <div className="flex flex-col gap-3 relative">
-               {parsed.files?.map((filename: string, i: number) => {
-                 const doc = availableDocs.find(d => d.label === filename);
-                 return (
-                   <div key={i} className="flex items-center gap-3 bg-black/40 border border-white/5 p-2.5 rounded-xl">
-                      <FileBox size={14} className="text-neutral-500" />
-                      <span className="text-xs text-neutral-300 truncate flex-1 font-medium">{filename}</span>
-                      {!doc && <span className="text-[8px] font-bold text-red-500/80 uppercase tracking-tighter">Not Found</span>}
-                   </div>
-                 );
-               })}
+              {parsed.files?.map((filename: string, i: number) => {
+                const doc = availableDocs.find(d => d.label === filename);
+                return (
+                  <div key={i} className="flex items-center gap-3 bg-black/40 border border-white/5 p-2.5 rounded-xl">
+                    <FileBox size={14} className="text-neutral-500" />
+                    <span className="text-xs text-neutral-300 truncate flex-1 font-medium">{filename}</span>
+                    {!doc && <span className="text-[8px] font-bold text-red-500/80 uppercase tracking-tighter">Not Found</span>}
+                  </div>
+                );
+              })}
             </div>
 
             <button
@@ -658,16 +660,16 @@ export default function AssistantPage() {
                   toast.error(`File "${parsed.files?.[0]}" not found in your vault.`);
                   return;
                 }
-                
+
                 const params = new URLSearchParams();
                 if (doc?.id) params.set('fileId', doc.id);
                 if (parsed.params?.page_order) params.set('pageOrder', JSON.stringify(parsed.params.page_order));
-                
+
                 router.push(`/tools/${parsed.tool}?${params.toString()}`);
               }}
               className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-black hover:bg-indigo-50 underline-offset-4 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 group/btn"
             >
-              Launch {parsed.tool.split('-').map((s:string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+              Launch {parsed.tool.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
               <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -678,16 +680,16 @@ export default function AssistantPage() {
       // Not JSON, just standard Markdown/Text
       return (
         <div className="text-sm leading-relaxed prose prose-invert prose-p:my-2 prose-headings:mb-3 prose-headings:mt-6 prose-strong:text-white max-w-none">
-            <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkMath]} 
-                rehypePlugins={[rehypeKatex]}
-                components={{
-                    pre: ({ children }) => <>{children}</>,
-                    code: CodeBlock
-                }}
-            >
-                {content}
-            </ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              pre: ({ children }) => <>{children}</>,
+              code: CodeBlock
+            }}
+          >
+            {content}
+          </ReactMarkdown>
         </div>
       );
     }
@@ -695,6 +697,14 @@ export default function AssistantPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-full max-w-4xl mx-auto pt-6 px-4 pb-0 items-center justify-end relative">
+      <div className="absolute top-4 left-4 z-20 md:hidden">
+        <button 
+          onClick={toggleMobile}
+          className="p-2 text-neutral-400 hover:text-white transition-colors"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
       {messages.length === 1 && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center opacity-30 pointer-events-none z-0">
           <Sparkles size={64} className="text-neutral-800 mb-6" />
@@ -721,10 +731,10 @@ export default function AssistantPage() {
             key={msg.id}
             className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`flex gap-4 max-w-[85%] items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div className={`flex gap-4 max-w-[92%] md:max-w-[85%] items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className="flex-shrink-0">
                 {msg.role === 'user' ? (
-                   <div className="w-8 h-8 mt-1.5 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-white border border-neutral-700 shadow-sm overflow-hidden">
+                  <div className="w-8 h-8 mt-1.5 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-white border border-neutral-700 shadow-sm overflow-hidden">
                     {avatarInitial}
                   </div>
                 ) : (
