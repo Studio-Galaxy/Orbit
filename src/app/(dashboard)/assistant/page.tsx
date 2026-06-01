@@ -57,24 +57,24 @@ const CodeBlock = ({ className, children, ...props }: any) => {
 
   return !inline ? (
     <div className="relative group/code my-6 not-prose">
-      <div className="absolute right-4 top-4 opacity-0 group-hover/code:opacity-100 transition-opacity z-20">
+      <div className="absolute right-3 top-3 opacity-0 group-hover/code:opacity-100 transition-opacity z-20">
         <button
           onClick={handleCopy}
-          className="p-2 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-xl border border-white/10 text-neutral-500 hover:text-white transition-all outline-none"
+          className="p-2 bg-neutral-900/80 hover:bg-neutral-800 backdrop-blur-md rounded-lg border border-neutral-800 text-neutral-500 hover:text-neutral-200 transition-all outline-none shadow-xl"
         >
-          {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+          {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
         </button>
       </div>
-      <div className="rounded-2xl overflow-hidden border border-neutral-900 shadow-2xl">
+      <div className="rounded-xl overflow-hidden border border-neutral-800 shadow-2xl">
         <SyntaxHighlighter
           language={language}
           style={oneDark}
           customStyle={{
             margin: 0,
-            padding: '1.5rem',
-            backgroundColor: '#050505',
-            fontSize: '13px',
-            lineHeight: '1.6',
+            padding: '1.25rem',
+            backgroundColor: '#0d0d0d',
+            fontSize: '12px',
+            lineHeight: '1.7',
           }}
           codeTagProps={{
             style: {
@@ -87,7 +87,7 @@ const CodeBlock = ({ className, children, ...props }: any) => {
       </div>
     </div>
   ) : (
-    <code className="bg-neutral-900/50 text-indigo-300 px-1.5 py-0.5 rounded text-[12px] font-medium font-mono border border-neutral-800/50" {...props}>
+    <code className="bg-neutral-900 text-indigo-300/80 px-1.5 py-0.5 rounded text-[11px] font-medium font-mono border border-neutral-800/50" {...props}>
       {children}
     </code>
   );
@@ -417,45 +417,63 @@ export default function AssistantPage() {
       const parsed = JSON.parse(content);
       if (parsed.type === 'flashcards' && Array.isArray(parsed.data)) {
         return (
-          <div className="w-full mt-2 space-y-3">
-            <div className="flex items-center gap-2 text-indigo-400 mb-2 font-medium">
-              <Command size={16} /> Generated Flashcards
+          <div className="w-full mt-4">
+            <div className="flex items-center gap-2.5 text-indigo-400/90 mb-5 font-semibold text-xs uppercase tracking-widest px-1">
+              <Command size={14} /> Study Flashcards
             </div>
-            {parsed.data.map((card: any, i: number) => {
-              const key = `${msgId}-${i}`;
-              const isRevealed = revealedCards[key];
-              return (
-                <div
-                  key={i}
-                  onClick={() => toggleCard(msgId, i)}
-                  className="cursor-pointer relative bg-neutral-900 border border-neutral-800 p-4 rounded-xl shadow-sm hover:border-neutral-700 transition-colors"
-                >
-                  <div className="text-sm font-semibold text-white mb-2 pb-2 border-b border-neutral-800">Q: {card.question}</div>
-                  <div className={`text-sm text-neutral-300 transition-opacity duration-300 ${isRevealed ? 'opacity-100' : 'opacity-0'}`}>
-                    A: {card.answer}
-                  </div>
-                  {!isRevealed && (
-                    <div className="text-xs text-indigo-400/60 font-medium absolute bottom-4 right-4 transition-opacity">Tap to reveal</div>
-                  )}
-                </div>
-              );
-            })}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {parsed.data.map((card: any, i: number) => {
+                const key = `${msgId}-${i}`;
+                const isRevealed = revealedCards[key];
+                return (
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    key={i}
+                    onClick={() => toggleCard(msgId, i)}
+                    className="group cursor-pointer aspect-[16/10] relative bg-[#0a0a0a] border border-neutral-800/60 p-5 rounded-2xl shadow-sm hover:border-neutral-700/80 transition-all flex flex-col justify-center items-center text-center overflow-hidden"
+                  >
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500/0 via-indigo-500/40 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
+                    <div className={`absolute inset-0 p-5 flex flex-col justify-center items-center transition-all duration-500 ${isRevealed ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+                      <div className="text-[13px] font-medium text-neutral-200 leading-relaxed line-clamp-4 px-2 tracking-tight">{card.question}</div>
+                      <div className="mt-4 text-[10px] text-neutral-500 font-bold uppercase tracking-widest bg-neutral-900/50 px-3 py-1 rounded-full border border-neutral-800/50">Tap to Flip</div>
+                    </div>
+
+                    <div className={`absolute inset-0 p-5 flex flex-col justify-center items-center bg-indigo-500/[0.03] transition-all duration-500 ${isRevealed ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                      <div className="text-[13px] text-indigo-100/90 leading-relaxed line-clamp-4 px-2 font-medium">{card.answer}</div>
+                      <div className="mt-4 text-[10px] text-indigo-400/80 font-bold uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/10">Definition</div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         );
       }
       if (parsed.type === 'viva' && Array.isArray(parsed.data)) {
         return (
-          <div className="w-full mt-2 space-y-3">
-            <div className="flex items-center gap-2 text-rose-400 mb-2 font-medium">
-              <CheckSquare size={16} /> {parsed.filename ? `Viva Questions for ${parsed.filename}` : "Viva Questions"}
+          <div className="w-full mt-4">
+            <div className="flex items-center gap-2.5 text-rose-400/90 mb-5 font-semibold text-xs uppercase tracking-widest px-1">
+              <CheckSquare size={14} /> {parsed.filename ? `Exam Prep: ${parsed.filename}` : "Viva Voce Practice"}
             </div>
-            {parsed.data.map((q: any, i: number) => (
-              <div key={i} className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl shadow-sm hover:border-neutral-700 transition-colors">
-                <div className="text-sm font-semibold text-white mb-2">Q: {q.question}</div>
-                <div className="text-sm text-neutral-400 italic">Expected: {q.answer}</div>
-              </div>
-            ))}
-            <div className="flex justify-end pt-2">
+            <div className="space-y-3">
+              {parsed.data.map((q: any, i: number) => (
+                <div key={i} className="group bg-[#0a0a0a] border border-neutral-800/60 p-5 rounded-2xl shadow-sm hover:border-neutral-700/80 transition-all">
+                  <div className="flex gap-4 items-start">
+                    <div className="w-6 h-6 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-[10px] font-bold text-neutral-500 shrink-0 mt-0.5">{i + 1}</div>
+                    <div className="flex-1 space-y-3">
+                      <div className="text-[13px] font-semibold text-neutral-100 leading-relaxed tracking-tight">{q.question}</div>
+                      <div className="text-[12px] text-neutral-400 leading-relaxed font-medium bg-neutral-900/40 p-3 rounded-xl border border-neutral-800/30">
+                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest block mb-1">Expected Concept</span>
+                        {q.answer}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-start mt-6">
               <button
                 onClick={async () => {
                   const toastId = toast.loading("Saving to Notes...");
@@ -467,7 +485,6 @@ export default function AssistantPage() {
                       }).join('\n');
                       let htmlContent = marked.parse(markdown);
 
-                      // Convert $...$ to Tiptap-friendly math spans
                       if (typeof htmlContent === 'string') {
                         htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
                       }
@@ -483,9 +500,9 @@ export default function AssistantPage() {
                     toast.error("Failed to save note", { id: toastId });
                   }
                 }}
-                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg"
+                className="px-5 py-2.5 bg-neutral-100 hover:bg-white text-black rounded-full text-xs font-bold transition-all flex items-center gap-2 shadow-xl hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Save size={14} /> Save to Notes
+                <Save size={14} /> Save to Study Notes
               </button>
             </div>
           </div>
@@ -493,128 +510,140 @@ export default function AssistantPage() {
       }
       if (parsed.type === 'save_note') {
         return (
-          <div className="w-full mt-2 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-            <div className="text-sm text-indigo-100 mb-4 markdown-preview prose prose-invert prose-p:leading-relaxed prose-p:my-1.5 prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-indigo-300 prose-li:my-0.5 prose-strong:text-white max-w-none">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={{
-                  pre: ({ children }) => <>{children}</>,
-                  code: CodeBlock
-                }}
-              >
-                {parsed.explanation || "I've generated a detailed explanation for this topic."}
-              </ReactMarkdown>
-            </div>
-            <div className="flex flex-col gap-2 border-t border-indigo-500/20 pt-4">
-              <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">Suggested Note</div>
-              <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 p-3 rounded-lg overflow-hidden shadow-inner">
-                <FileText size={16} className="text-neutral-500 shrink-0" />
-                <div className="text-sm text-white font-medium truncate flex-1">{parsed.filename || "AI_Generated_Note"}</div>
-                <button
-                  onClick={async () => {
-                    const toastId = toast.loading("Saving to Notes...");
-                    try {
-                      const { data: { user } } = await supabase.auth.getUser();
-                      if (user) {
-                        const markdown = parsed.content || parsed.explanation || "";
-                        let htmlContent = marked.parse(markdown);
-
-                        // Convert $...$ to Tiptap-friendly math spans
-                        if (typeof htmlContent === 'string') {
-                          htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
-                        }
-
-                        await supabase.from('notes').insert({
-                          user_id: user.id,
-                          title: parsed.filename || "AI Generated Note",
-                          content: htmlContent
-                        });
-                        toast.success("Saved to Notes", { id: toastId });
-                      }
-                    } catch (e) {
-                      toast.error("Failed to save note", { id: toastId });
-                    }
-                  }}
-                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg"
-                >
-                  <Save size={14} /> Save to Notes
-                </button>
+          <div className="w-full mt-4 bg-[#0d0d0d] border border-neutral-800/80 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-6 py-5">
+              <div className="flex items-center gap-2.5 text-indigo-400/90 mb-6 font-semibold text-xs uppercase tracking-widest">
+                <FileText size={14} /> Knowledge Summary
               </div>
+              <div className="text-[13px] text-neutral-200 leading-[1.7] markdown-preview prose prose-invert prose-p:my-2 prose-headings:mb-3 prose-headings:mt-6 prose-strong:text-white max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    pre: ({ children }) => <>{children}</>,
+                    code: CodeBlock
+                  }}
+                >
+                  {parsed.explanation || "I've generated a detailed explanation for this topic."}
+                </ReactMarkdown>
+              </div>
+            </div>
+            
+            <div className="bg-neutral-900/30 border-t border-neutral-800/60 px-6 py-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-500 shrink-0 shadow-inner">
+                  <Save size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest mb-0.5">Draft Saved</div>
+                  <div className="text-[12px] text-neutral-300 font-semibold truncate">{parsed.filename || "AI_Generated_Note"}</div>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  const toastId = toast.loading("Saving to Notes...");
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                      const markdown = parsed.content || parsed.explanation || "";
+                      let htmlContent = marked.parse(markdown);
+
+                      if (typeof htmlContent === 'string') {
+                        htmlContent = htmlContent.replace(/\$([^\$]+)\$/g, '<span data-type="mathematics" latex="$1"></span>');
+                      }
+
+                      await supabase.from('notes').insert({
+                        user_id: user.id,
+                        title: parsed.filename || "AI Generated Note",
+                        content: htmlContent
+                      });
+                      toast.success("Saved to Notes", { id: toastId });
+                    }
+                  } catch (e) {
+                    toast.error("Failed to save note", { id: toastId });
+                  }
+                }}
+                className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full text-[11px] font-bold transition-all shadow-lg active:scale-95 shrink-0"
+              >
+                Finalize to Library
+              </button>
             </div>
           </div>
         );
       }
       if (parsed.type === 'tool_result') {
         return (
-          <div className="w-full mt-2 p-5 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] pointer-events-none" />
-
-            <div className="flex items-center gap-4 mb-6 relative">
-              <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner">
-                <FileBox size={24} />
+          <div className="w-full mt-4 p-[1px] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800 rounded-2xl shadow-xl overflow-hidden group">
+            <div className="bg-[#0a0a0a] rounded-[15px] p-6 h-full w-full relative">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/5 blur-[60px] pointer-events-none group-hover:bg-indigo-500/10 transition-all" />
+              
+              <div className="flex items-center gap-5 mb-8 relative">
+                <div className="w-12 h-12 rounded-[14px] bg-neutral-900/50 backdrop-blur-sm flex items-center justify-center text-indigo-400 border border-neutral-800/80 shadow-2xl relative">
+                  <div className="absolute inset-0 bg-indigo-500/5 blur-md rounded-full" />
+                  <FileBox size={22} className="relative z-10" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.15em] mb-1 opacity-80">Task Processed</div>
+                  <h3 className="text-[14px] font-bold text-neutral-100 truncate">{parsed.filename}</h3>
+                </div>
               </div>
-              <div>
-                <div className="text-xs font-bold text-indigo-400 uppercase tracking-tighter mb-1">Task Completed</div>
-                <h3 className="text-sm font-semibold text-white truncate max-w-[200px]">{parsed.filename}</h3>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 relative">
-              <button
-                onClick={async () => {
-                  const toastId = toast.loading("Saving to Vault...");
-                  try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) throw new Error("Please login");
+              <div className="grid grid-cols-2 gap-4 relative">
+                <button
+                  onClick={async () => {
+                    const toastId = toast.loading("Saving to Vault...");
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error("Please login");
 
+                      const res = await fetch(parsed.data);
+                      const blob = await res.blob();
+                      const file = new File([blob], parsed.filename, { type: blob.type });
+
+                      const filePath = `${user.id}/${Date.now()}_${parsed.filename}`;
+                      const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
+                      if (uploadError) throw uploadError;
+
+                      const { data: { publicUrl } } = supabase.storage.from('vault_files').getPublicUrl(filePath);
+                      const { data: vaultData, error: dbError } = await supabase.from('vault_files').insert({
+                        user_id: user.id,
+                        filename: parsed.filename,
+                        file_format: parsed.filename.split('.').pop()?.toLowerCase() || 'pdf',
+                        file_url: publicUrl,
+                      }).select().single();
+
+                      if (dbError) throw dbError;
+                      if (vaultData) {
+                        setAvailableDocs(prev => [{
+                          type: 'pdf',
+                          id: vaultData.id,
+                          label: vaultData.filename,
+                          url: vaultData.file_url
+                        }, ...prev]);
+                      }
+
+                      toast.success("Saved to Vault!", { id: toastId });
+                    } catch (e: any) {
+                      toast.error(e.message, { id: toastId });
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded-xl text-[11px] font-bold transition-all border border-neutral-800/80 shadow-sm active:scale-95"
+                >
+                  <Save size={14} className="opacity-70" /> Save to Vault
+                </button>
+
+                <button
+                  onClick={async () => {
                     const res = await fetch(parsed.data);
                     const blob = await res.blob();
-                    const file = new File([blob], parsed.filename, { type: blob.type });
-
-                    const filePath = `${user.id}/${Date.now()}_${parsed.filename}`;
-                    const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
-                    if (uploadError) throw uploadError;
-
-                    const { data: { publicUrl } } = supabase.storage.from('vault_files').getPublicUrl(filePath);
-                    const { data: vaultData, error: dbError } = await supabase.from('vault_files').insert({
-                      user_id: user.id,
-                      filename: parsed.filename,
-                      file_format: parsed.filename.split('.').pop()?.toLowerCase() || 'pdf',
-                      file_url: publicUrl,
-                    }).select().single();
-
-                    if (dbError) throw dbError;
-                    if (vaultData) {
-                      setAvailableDocs(prev => [{
-                        type: 'pdf',
-                        id: vaultData.id,
-                        label: vaultData.filename,
-                        url: vaultData.file_url
-                      }, ...prev]);
-                    }
-
-                    toast.success("Saved to Vault!", { id: toastId });
-                  } catch (e: any) {
-                    toast.error(e.message, { id: toastId });
-                  }
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-all border border-neutral-700 shadow-lg group"
-              >
-                <Save size={14} className="group-hover:scale-110 transition-transform" /> Save to Vault
-              </button>
-
-              <button
-                onClick={async () => {
-                  const res = await fetch(parsed.data);
-                  const blob = await res.blob();
-                  saveAs(blob, parsed.filename);
-                  toast.success("Downloaded!");
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-xl text-xs font-bold transition-all shadow-lg group"
-              >
-                <FileText size={14} className="group-hover:scale-110 transition-transform" /> Download
-              </button>
+                    saveAs(blob, parsed.filename);
+                    toast.success("Downloaded!");
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 hover:bg-white text-black rounded-xl text-[11px] font-bold transition-all shadow-md active:scale-95"
+                >
+                  <FileText size={14} className="opacity-80" /> Download PDF
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -622,56 +651,57 @@ export default function AssistantPage() {
       if (parsed.type === 'tool_action') {
         const toolIcon = TOOL_COMMANDS.find(t => t.id === parsed.tool)?.label || "#tool";
         return (
-          <div className="w-full mt-2 p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border border-indigo-500/20 rounded-2xl shadow-xl overflow-hidden relative group/action">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none group-hover/action:bg-indigo-500/20 transition-all" />
+          <div className="w-full mt-4 p-[1px] bg-indigo-500/20 rounded-2xl shadow-2xl overflow-hidden group/action">
+            <div className="bg-[#0a0a0a]/90 backdrop-blur-xl rounded-[15px] p-6 relative overflow-hidden h-full">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none group-hover/action:bg-indigo-500/20 transition-all" />
 
-            <div className="flex items-center gap-4 mb-4 relative">
-              <div className="w-12 h-12 rounded-xl bg-neutral-950 flex items-center justify-center text-indigo-400 border border-neutral-800 shadow-inner group-hover/action:border-indigo-500/50 transition-colors">
-                <Command size={24} />
+              <div className="flex items-center gap-4 mb-5 relative">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-inner group-hover/action:border-indigo-500/50 transition-colors">
+                  <Command size={18} />
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-0.5">Recommended Workflow</div>
+                  <h3 className="text-sm font-bold text-white tracking-tight">{parsed.params?.description || "Document Process"}</h3>
+                </div>
               </div>
-              <div>
-                <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Suggested Action</div>
-                <h3 className="text-base font-bold text-white mb-0.5">{parsed.params?.description || "Document Process"}</h3>
-                <div className="text-[10px] text-neutral-500 font-medium">Using {parsed.tool}</div>
+
+              <div className="text-[12px] text-neutral-400 mb-6 leading-relaxed font-medium">
+                {parsed.explanation}
               </div>
+
+              <div className="flex flex-col gap-2 relative">
+                {parsed.files?.map((filename: string, i: number) => {
+                  const doc = availableDocs.find(d => d.label === filename);
+                  return (
+                    <div key={i} className="flex items-center gap-3 bg-neutral-900/50 border border-neutral-800/50 p-2.5 rounded-xl group/file">
+                      <FileBox size={14} className="text-neutral-600 group-hover/file:text-indigo-400/70 transition-colors" />
+                      <span className="text-[11px] text-neutral-300 truncate flex-1 font-semibold">{filename}</span>
+                      {!doc && <span className="w-1.5 h-1.5 rounded-full bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => {
+                  const doc = availableDocs.find(d => d.label === (parsed.files?.[0] || ""));
+                  if (!doc && parsed.tool !== 'image-to-pdf') {
+                    toast.error(`File "${parsed.files?.[0]}" not found in your vault.`);
+                    return;
+                  }
+
+                  const params = new URLSearchParams();
+                  if (doc?.id) params.set('fileId', doc.id);
+                  if (parsed.params?.page_order) params.set('pageOrder', JSON.stringify(parsed.params.page_order));
+
+                  router.push(`/tools/${parsed.tool}?${params.toString()}`);
+                }}
+                className="mt-6 w-full flex items-center justify-center gap-2.5 px-6 py-3.5 bg-neutral-100 text-black hover:bg-white font-bold text-[11px] uppercase tracking-widest rounded-xl transition-all shadow-xl active:scale-[0.98] group/btn"
+              >
+                Open {parsed.tool.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+              </button>
             </div>
-
-            <div className="text-sm text-neutral-300 mb-6 line-clamp-2 leading-relaxed">
-              {parsed.explanation}
-            </div>
-
-            <div className="flex flex-col gap-3 relative">
-              {parsed.files?.map((filename: string, i: number) => {
-                const doc = availableDocs.find(d => d.label === filename);
-                return (
-                  <div key={i} className="flex items-center gap-3 bg-black/40 border border-white/5 p-2.5 rounded-xl">
-                    <FileBox size={14} className="text-neutral-500" />
-                    <span className="text-xs text-neutral-300 truncate flex-1 font-medium">{filename}</span>
-                    {!doc && <span className="text-[8px] font-bold text-red-500/80 uppercase tracking-tighter">Not Found</span>}
-                  </div>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => {
-                const doc = availableDocs.find(d => d.label === (parsed.files?.[0] || ""));
-                if (!doc && parsed.tool !== 'image-to-pdf') {
-                  toast.error(`File "${parsed.files?.[0]}" not found in your vault.`);
-                  return;
-                }
-
-                const params = new URLSearchParams();
-                if (doc?.id) params.set('fileId', doc.id);
-                if (parsed.params?.page_order) params.set('pageOrder', JSON.stringify(parsed.params.page_order));
-
-                router.push(`/tools/${parsed.tool}?${params.toString()}`);
-              }}
-              className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-black hover:bg-indigo-50 underline-offset-4 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 group/btn"
-            >
-              Launch {parsed.tool.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
-              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-            </button>
           </div>
         );
       }
@@ -706,21 +736,25 @@ export default function AssistantPage() {
         </button>
       </div>
       {messages.length === 1 && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center opacity-30 pointer-events-none z-0">
-          <Sparkles size={64} className="text-neutral-800 mb-6" />
-          <h1 className="text-2xl font-semibold text-neutral-400">Orbit Study Assistant</h1>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center opacity-40 pointer-events-none z-0">
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-indigo-500/20 blur-[60px] rounded-full" />
+            <Sparkles size={48} className="text-white relative z-10" />
+          </div>
+          <h1 className="text-xl font-medium text-neutral-200 tracking-tight">How can Orbit help you today?</h1>
+          <p className="text-sm text-neutral-500 mt-2 max-w-[280px]">Mention your notes with @ or use /commands to get started</p>
         </div>
       )}
 
       {/* Chat Messages */}
-      <div className="flex-1 w-full overflow-y-auto relative space-y-8 pb-10 pt-8 z-10 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {messages.length > 0 && (
+      <div className="flex-1 w-full overflow-y-auto relative space-y-10 pb-32 pt-8 z-10 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {messages.length > 1 && (
           <div className="absolute top-8 right-0 md:right-2 z-20">
             <button
               onClick={clearChat}
-              className="text-neutral-400 hover:text-red-500 transition-colors flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg"
+              className="text-neutral-500 hover:text-red-400 transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full bg-neutral-900/50 border border-neutral-800/50 backdrop-blur-sm"
             >
-              <Trash2 size={13} /> Clear
+              <Trash2 size={12} /> Clear Chat
             </button>
           </div>
         )}
@@ -731,20 +765,24 @@ export default function AssistantPage() {
             key={msg.id}
             className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`flex gap-4 max-w-[92%] md:max-w-[85%] items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className="flex-shrink-0">
+            <div className={`flex gap-5 max-w-[94%] md:max-w-[85%] items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div className="flex-shrink-0 pt-1">
                 {msg.role === 'user' ? (
-                  <div className="w-8 h-8 mt-1.5 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-white border border-neutral-700 shadow-sm overflow-hidden">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center text-[10px] font-bold text-white border border-neutral-600/50 shadow-sm overflow-hidden uppercase">
                     {avatarInitial}
                   </div>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black shadow-md">
-                    <Sparkles size={14} />
+                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-black shadow-lg">
+                    <Sparkles size={12} />
                   </div>
                 )}
               </div>
-              <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`w-full ${msg.role === 'user' ? 'text-white bg-neutral-800/80 px-4 py-3 rounded-2xl rounded-tr-sm border border-neutral-700/50' : 'text-neutral-200 pt-1'}`}>
+              <div className={`flex flex-col space-y-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`w-full ${
+                  msg.role === 'user' 
+                    ? 'text-neutral-200 bg-[#0d0d0d] px-5 py-3.5 rounded-2xl rounded-tr-[4px] border border-neutral-800/80 shadow-sm' 
+                    : 'text-neutral-200 pt-1'
+                }`}>
                   {renderMessageContent(msg.content, msg.id)}
                 </div>
               </div>
@@ -774,77 +812,80 @@ export default function AssistantPage() {
       </div>
 
       {/* Input Area */}
-      <div className="w-full bg-black py-6 mt-auto z-20 relative">
+      <div className="w-full max-w-3xl mx-auto px-4 pb-8 z-20 relative">
         {/* Autocomplete Dropdown */}
         <AnimatePresence>
           {(showMentions || showCommands || showTools) && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-full mb-4 left-0 w-full max-w-sm bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl z-50"
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 10 }}
+              className="absolute bottom-full mb-6 left-0 w-full max-w-[320px] bg-[#0d0d0d] border border-neutral-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl z-50 flex flex-col p-2"
             >
               {showMentions && (
-                <div className="p-2">
-                  <div className="px-3 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wider flex justify-between">
-                    <span>Select Note or PDF</span>
-                    <span className="bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">Tab</span>
+                <div className="flex flex-col">
+                  <div className="px-3 py-2 text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] flex justify-between items-center bg-neutral-900/30 rounded-lg mb-1">
+                    <span>Library Mentions (@)</span>
                   </div>
                   {filteredDocs.length > 0 ? filteredDocs.map((doc, i) => (
-                    <div
+                    <button
                       key={doc.id}
                       onClick={() => insertCompletion(`@${doc.label}`)}
-                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-all text-left ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-300' : 'text-neutral-400 hover:bg-neutral-800/40'}`}
                     >
-                      {doc.type === 'note' ? <FileText size={16} /> : <FileBox size={16} />}
-                      <span className="font-medium text-sm line-clamp-1 truncate block">{doc.label}</span>
-                    </div>
+                      <div className={`p-1.5 rounded-lg ${i === selectedIndex ? 'bg-indigo-500/20 text-indigo-400' : 'bg-neutral-900 text-neutral-600'}`}>
+                        {doc.type === 'note' ? <FileText size={14} /> : <FileBox size={14} />}
+                      </div>
+                      <span className="font-semibold text-[13px] truncate">{doc.label}</span>
+                    </button>
                   )) : (
-                    <div className="px-3 py-4 text-center text-sm text-neutral-500">No matching files found.</div>
+                    <div className="px-3 py-6 text-center text-xs text-neutral-500 font-medium">No files found</div>
                   )}
                 </div>
               )}
               {showCommands && (
-                <div className="p-2">
-                  <div className="px-3 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wider flex justify-between">
-                    <span>Commands</span>
-                    <span className="bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">Tab</span>
+                <div className="flex flex-col">
+                  <div className="px-3 py-2 text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] flex justify-between items-center bg-neutral-900/30 rounded-lg mb-1">
+                    <span>AI Commands (/)</span>
                   </div>
                   {filteredCommands.length > 0 ? filteredCommands.map((cmd, i) => (
-                    <div
+                    <button
                       key={cmd.id}
                       onClick={() => insertCompletion(cmd.label)}
-                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/20 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-all text-left ${i === selectedIndex ? 'bg-neutral-100 text-black' : 'text-neutral-400 hover:bg-neutral-800/40'}`}
                     >
-                      <Command size={16} className={i === selectedIndex ? "text-indigo-400" : "text-neutral-500"} />
-                      <div className="flex flex-col items-start min-w-0">
-                        <span className="font-semibold text-sm leading-none">{cmd.label}</span>
-                        <span className="text-xs text-neutral-500 mt-1 line-clamp-1 truncate max-w-full block">{cmd.desc}</span>
+                      <div className={`p-1.5 rounded-lg ${i === selectedIndex ? 'bg-black text-white' : 'bg-neutral-900 text-neutral-600'}`}>
+                        <Command size={14} />
                       </div>
-                    </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-[13px]">{cmd.label}</span>
+                        <span className={`text-[10px] truncate ${i === selectedIndex ? 'text-black/60' : 'text-neutral-500'}`}>{cmd.desc}</span>
+                      </div>
+                    </button>
                   )) : null}
                 </div>
               )}
               {showTools && (
-                <div className="p-2">
-                  <div className="px-3 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wider flex justify-between">
-                    <span>Document Tools</span>
-                    <span className="bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">Tab</span>
+                <div className="flex flex-col">
+                  <div className="px-3 py-2 text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] flex justify-between items-center bg-neutral-900/30 rounded-lg mb-1">
+                    <span>PDF Workflows (#)</span>
                   </div>
                   {filteredTools.length > 0 ? filteredTools.map((tool, i) => (
-                    <div
+                    <button
                       key={tool.id}
                       onClick={() => insertCompletion(tool.label)}
-                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-colors ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-400' : 'text-neutral-300 hover:bg-neutral-800/50'}`}
+                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-all text-left ${i === selectedIndex ? 'bg-white text-black' : 'text-neutral-400 hover:bg-neutral-800/40'}`}
                     >
-                      <Command size={16} className={i === selectedIndex ? "text-indigo-400" : "text-neutral-500"} />
-                      <div className="flex flex-col items-start min-w-0">
-                        <span className="font-semibold text-sm leading-none">{tool.label}</span>
-                        <span className="text-xs text-neutral-500 mt-1 line-clamp-1 truncate max-w-full block">{tool.desc}</span>
+                      <div className={`p-1.5 rounded-lg ${i === selectedIndex ? 'bg-neutral-200 text-black' : 'bg-neutral-900 text-neutral-600'}`}>
+                        <Command size={14} />
                       </div>
-                    </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-[13px]">{tool.label}</span>
+                        <span className={`text-[10px] truncate ${i === selectedIndex ? 'text-black/60' : 'text-neutral-500'}`}>{tool.desc}</span>
+                      </div>
+                    </button>
                   )) : (
-                    <div className="px-3 py-4 text-center text-sm text-neutral-500">No matching tools found.</div>
+                    <div className="px-3 py-6 text-center text-xs text-neutral-500 font-medium">No tools found</div>
                   )}
                 </div>
               )}
@@ -852,72 +893,79 @@ export default function AssistantPage() {
           )}
         </AnimatePresence>
 
-        <div className="relative flex flex-col w-full bg-neutral-900 border border-neutral-800 focus-within:border-neutral-600 transition-colors rounded-2xl p-2 shadow-2xl">
-          <div className="flex items-end w-full">
-            <input
-              type="file"
-              className="hidden"
-              id="assistant-upload"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
+        <div className="relative group/input">
+          <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500/20 via-purple-500/10 to-indigo-500/20 rounded-[22px] blur-xl opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-500" />
+          
+          <div className="relative flex flex-col w-full bg-[#0d0d0d]/80 backdrop-blur-xl border border-neutral-800/80 focus-within:border-neutral-600/80 transition-all duration-300 rounded-[20px] p-2 shadow-2xl">
+            <div className="flex items-end w-full">
+              <input
+                type="file"
+                className="hidden"
+                id="assistant-upload"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
 
-                const toastId = toast.loading("Preparing file...");
-                try {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) throw new Error("Please login");
+                  const toastId = toast.loading("Preparing file...");
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Please login");
 
-                  const filePath = `${user.id}/${Date.now()}_${file.name}`;
-                  const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
-                  if (uploadError) throw uploadError;
+                    const filePath = `${user.id}/${Date.now()}_${file.name}`;
+                    const { error: uploadError } = await supabase.storage.from('vault_files').upload(filePath, file);
+                    if (uploadError) throw uploadError;
 
-                  const { data: { publicUrl } } = supabase.storage.from('vault_files').getPublicUrl(filePath);
-                  const { data: vaultData } = await supabase.from('vault_files').insert({
-                    user_id: user.id,
-                    filename: file.name,
-                    file_url: publicUrl,
-                  }).select().single();
+                    const { data: { publicUrl } } = supabase.storage.from('vault_files').getPublicUrl(filePath);
+                    const { data: vaultData } = await supabase.from('vault_files').insert({
+                      user_id: user.id,
+                      filename: file.name,
+                      file_url: publicUrl,
+                    }).select().single();
 
-                  if (vaultData) {
-                    setAvailableDocs(prev => [{
-                      type: 'pdf',
-                      id: vaultData.id,
-                      label: vaultData.filename,
-                      url: vaultData.file_url
-                    }, ...prev]);
-                    setInput(prev => prev + ` @${file.name} `);
-                    toast.success("File ready in vault!", { id: toastId });
+                    if (vaultData) {
+                      setAvailableDocs(prev => [{
+                        type: 'pdf',
+                        id: vaultData.id,
+                        label: vaultData.filename,
+                        url: vaultData.file_url
+                      }, ...prev]);
+                      setInput(prev => prev + ` @${file.name} `);
+                      toast.success("File ready in vault!", { id: toastId });
+                    }
+                  } catch (err: any) {
+                    toast.error(err.message, { id: toastId });
                   }
-                } catch (err: any) {
-                  toast.error(err.message, { id: toastId });
-                }
-              }}
-            />
-            <label
-              htmlFor="assistant-upload"
-              className="p-3 mr-1 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center"
-            >
-              <Upload size={18} />
-            </label>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything or use '/' for commands, '@' for notes, '#' for PDF tools..."
-              className="flex-1 bg-transparent border-none outline-none text-white text-sm px-4 py-3 placeholder-neutral-500 resize-none min-h-[44px] max-h-32 overflow-y-auto leading-relaxed"
-              rows={1}
-            />
-            <button
-              onClick={handleSend}
-              className="p-3 ml-2 bg-white text-black hover:bg-neutral-200 transition-colors rounded-xl flex items-center justify-center disabled:opacity-50 shrink-0 h-[44px] w-[44px]"
-              disabled={!input.trim() || isTyping}
-            >
-              <Send size={18} />
-            </button>
+                }}
+              />
+              <label
+                htmlFor="assistant-upload"
+                className="p-3.5 mb-0.5 text-neutral-500 hover:text-white transition-colors cursor-pointer rounded-xl flex items-center justify-center hover:bg-neutral-800/50"
+              >
+                <Upload size={18} />
+              </label>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask anything or use '/' for commands..."
+                className="flex-1 bg-transparent border-none outline-none text-neutral-200 text-[14px] px-4 py-3.5 placeholder-neutral-600 resize-none min-h-[52px] max-h-48 overflow-y-auto leading-[1.6] scrollbar-hide"
+                rows={1}
+              />
+              <button
+                onClick={handleSend}
+                className="p-3.5 ml-2 bg-neutral-100 text-black hover:bg-white transition-all rounded-[14px] flex items-center justify-center disabled:opacity-30 disabled:grayscale shrink-0 h-[46px] w-[46px] shadow-lg active:scale-90"
+                disabled={!input.trim() || isTyping}
+              >
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
-        <div className="text-center mt-4">
-          <span className="text-[10px] text-neutral-600 opacity-60">AI can make mistakes. Verify important information.</span>
+        
+        <div className="flex justify-center gap-4 mt-6">
+          <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest opacity-40">Privacy Protected</span>
+          <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest opacity-40">•</span>
+          <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest opacity-40 px-1">AI Verified</span>
         </div>
       </div>
     </div>
