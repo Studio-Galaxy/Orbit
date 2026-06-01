@@ -747,7 +747,7 @@ export default function AssistantPage() {
       )}
 
       {/* Chat Messages */}
-      <div className="flex-1 w-full overflow-y-auto relative space-y-10 pb-32 pt-8 z-10 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex-1 w-full overflow-y-auto relative space-y-10 pb-44 pt-8 z-10 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {messages.length > 1 && (
           <div className="absolute top-8 right-0 md:right-2 z-20">
             <button
@@ -808,11 +808,14 @@ export default function AssistantPage() {
             </div>
           </motion.div>
         )}
-        <div ref={messagesEndRef} className="h-4" />
+        <div ref={messagesEndRef} className="h-12" />
       </div>
 
+      {/* Fade Overlay */}
+      <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none z-15" />
+
       {/* Input Area */}
-      <div className="w-full max-w-3xl mx-auto px-4 pb-8 z-20 relative">
+      <div className="w-full max-w-3xl mx-auto px-4 pb-2 z-20 relative">
         {/* Autocomplete Dropdown */}
         <AnimatePresence>
           {(showMentions || showCommands || showTools) && (
@@ -824,19 +827,24 @@ export default function AssistantPage() {
             >
               {showMentions && (
                 <div className="flex flex-col">
-                  <div className="px-3 py-2 text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] flex justify-between items-center bg-neutral-900/30 rounded-lg mb-1">
-                    <span>Library Mentions (@)</span>
+                  <div className="px-3 py-2 text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] bg-neutral-900/30 rounded-lg mb-1">
+                    <span>Library Context (@)</span>
                   </div>
                   {filteredDocs.length > 0 ? filteredDocs.map((doc, i) => (
                     <button
                       key={doc.id}
                       onClick={() => insertCompletion(`@${doc.label}`)}
-                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-all text-left ${i === selectedIndex ? 'bg-indigo-500/10 text-indigo-300' : 'text-neutral-400 hover:bg-neutral-800/40'}`}
+                      className={`px-3 py-2.5 flex items-center gap-3 cursor-pointer rounded-xl transition-all text-left ${i === selectedIndex ? 'bg-white text-black' : 'text-neutral-400 hover:bg-neutral-800/40'}`}
                     >
-                      <div className={`p-1.5 rounded-lg ${i === selectedIndex ? 'bg-indigo-500/20 text-indigo-400' : 'bg-neutral-900 text-neutral-600'}`}>
+                      <div className={`p-1.5 rounded-lg ${i === selectedIndex ? 'bg-neutral-200 text-black' : 'bg-neutral-900 text-neutral-600'}`}>
                         {doc.type === 'note' ? <FileText size={14} /> : <FileBox size={14} />}
                       </div>
-                      <span className="font-semibold text-[13px] truncate">{doc.label}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-[13px] truncate">{doc.label}</span>
+                        <span className={`text-[10px] truncate uppercase tracking-tighter ${i === selectedIndex ? 'text-black/60' : 'text-neutral-500'}`}>
+                          {doc.type === 'note' ? 'Knowledge Note' : 'Vault PDF'}
+                        </span>
+                      </div>
                     </button>
                   )) : (
                     <div className="px-3 py-6 text-center text-xs text-neutral-500 font-medium">No files found</div>
@@ -962,7 +970,7 @@ export default function AssistantPage() {
           </div>
         </div>
         
-        <div className="flex justify-center gap-4 mt-6">
+        <div className="flex justify-center gap-4 mt-4">
           <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest opacity-40">Privacy Protected</span>
           <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest opacity-40">•</span>
           <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest opacity-40 px-1">AI Verified</span>
