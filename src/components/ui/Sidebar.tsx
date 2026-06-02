@@ -77,7 +77,7 @@ export function Sidebar() {
             <div className={`p-6 h-20 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between'}`}>
                {!isCollapsed ? (
                 <motion.h1 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-xl font-black tracking-tighter flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shadow-lg"><div className="w-2.5 h-2.5 rounded-full bg-black animate-pulse" /></div>
+                  <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shadow-lg"><div className="w-2.5 h-2.5 rounded-full bg-black" /></div>
                   <span className="bg-gradient-to-br from-white to-neutral-500 bg-clip-text text-transparent">Orbit</span>
                 </motion.h1>
                ) : (
